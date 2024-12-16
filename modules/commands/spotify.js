@@ -5,10 +5,10 @@ module.exports.config = {
     version: "1.0.0",
     hasPermssion: 0,
     credits: "Biru",
-    description: "Play music via a search keyword",
+    description: "Play spotify music via a search keyword",
     usePrefix: true,
     commandCategory: "Media",
-    usages: "[song name]",
+    usages: "[spotify name]",
     cooldowns: 10,
     dependencies: { axios: "" }
 };
@@ -47,28 +47,19 @@ module.exports.run = async function ({ api, event, args }) {
         // Format the response message
         const messageBody = `🎶 Now Playing: "${songTitle}"\n👤 Artist: ${songArtist}\n💽 Album: ${albumName}`;
 
-        // Send the message first
-        api.sendMessage(messageBody, threadID, async () => {
-            try {
-                // Fetch the song directly as a stream
-                const downloadResponse = await axios({
-                    url: downloadUrl,
-                    method: 'GET',
-                    responseType: 'stream'
-                });
-
-                // Send the attachment
-                api.sendMessage({
-                    attachment: downloadResponse.data
-                }, threadID, () => {
-                    api.setMessageReaction("✅", messageID, () => {}, true);
-                }, messageID);
-            } catch (downloadError) {
-                console.error("Error fetching the song stream:", downloadError.message);
-                api.sendMessage("An error occurred while downloading the song. Please try again later.", threadID, messageID);
-                api.setMessageReaction("❌", messageID, () => {}, true);
-            }
+        // Fetch the song directly as a stream and send it as an attachment
+        const downloadResponse = await axios({
+            url: downloadUrl,
+            method: 'GET',
+            responseType: 'stream'
         });
+
+        api.sendMessage({
+            body: messageBody,
+            attachment: downloadResponse.data
+        }, threadID, () => {
+            api.setMessageReaction("✅", messageID, () => {}, true);
+        }, messageID);
 
     } catch (error) {
         console.error("Error fetching the song:", error.message);
