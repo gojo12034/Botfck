@@ -7,7 +7,7 @@ module.exports.config = {
     version: "1.0",
     hasPermission: 0,
     description: "Get lyrics and artist image",
-    credits: "Jonell Magallanes",
+    credits: "Biru",
     usePrefix: true,
     commandCategory: "Search",
     usages: "[song title]",
@@ -25,12 +25,15 @@ module.exports.run = async function ({ api, event, args }) {
                 event.messageID
             );
         }
-api.sendMessage("🔎 Searching for lyrics", event.threadID, event.messageID);
-        const apiUrl = `https://aemt.me/lirik?text=${encodeURIComponent(title)}`;
+
+        api.sendMessage("🔎 Searching for lyrics...", event.threadID, event.messageID);
+
+        // URL to the new lyrics API
+        const apiUrl = `https://vneerapi.onrender.com/lyrics?song=${encodeURIComponent(title)}`;
         console.log(`Fetching data from API: ${apiUrl}`);
 
         const res = await axios.get(apiUrl);
-        const data = res.data.result;
+        const data = res.data;
 
         if (!data || !data.lyrics) {
             return api.sendMessage(
@@ -40,24 +43,31 @@ api.sendMessage("🔎 Searching for lyrics", event.threadID, event.messageID);
             );
         }
 
-        const artistImageResponse = await axios.get(data.artistImage, { responseType: "arraybuffer" });
-        const imageFileName = `${data.title.replace(/\s/g, "_").toLowerCase()}_image.jpg`;
-        const imagePath = path.join(__dirname, "images", imageFileName);
-        await fs.outputFile(imagePath, artistImageResponse.data);
-
+        // Prepare the message with song title, artist, and lyrics
         const message = `🎵 Lyrics for "${data.title}" by ${data.artist}\n━━━━━━━━━━━━━━━\n\n${data.lyrics}`;
 
-        const imgData = fs.createReadStream(imagePath);
+        // Check if there is an artist image URL, handle accordingly
+        if (data.artistImage) {
+            const artistImageResponse = await axios.get(data.artistImage, { responseType: "arraybuffer" });
+            const imageFileName = `${data.title.replace(/\s/g, "_").toLowerCase()}_image.jpg`;
+            const imagePath = path.join(__dirname, "images", imageFileName);
+            await fs.outputFile(imagePath, artistImageResponse.data);
 
-        await api.sendMessage({
-            body: message,
-            attachment: imgData,
-        }, event.threadID);
+            const imgData = fs.createReadStream(imagePath);
+            await api.sendMessage({
+                body: message,
+                attachment: imgData,
+            }, event.threadID);
 
-        console.log(`Lyrics and image successfully sent for "${data.title}"`);
+            // Clean up image file after sending
+            await fs.remove(imagePath);
+            console.log(`Image file ${imagePath} removed.`);
+        } else {
+            // Send message without image if no artist image is found
+            await api.sendMessage(message, event.threadID, event.messageID);
+        }
 
-        await fs.remove(imagePath);
-        console.log(`Image file ${imagePath} removed.`);
+        console.log(`Lyrics successfully sent for "${data.title}"`);
 
     } catch (error) {
         console.error("Error fetching lyrics:", error);
