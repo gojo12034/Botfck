@@ -3,7 +3,7 @@ const admin = "𝟣𝟢𝟢𝟢𝟤𝟤𝟣𝟫𝟦𝟪𝟤𝟧𝟧𝟨𝟧";
 module.exports.config = {
   name: "adc",
   version: "1.0.1",
-  hasPermssion: 0,
+  hasPermssion: 1,
   credits: "D-Jukie",
   description: "Apply code from buildtooldev and pastebin",
   usePrefix: true,
