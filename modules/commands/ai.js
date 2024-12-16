@@ -26,7 +26,7 @@ module.exports.run = async function ({ api, event, args }) {
 
   try {
     // Send the request to the external API
-    const apiUrl = `https://vneerapi.onrender.com/ai?prompt=${encodeURIComponent(userMessage)}&uid=${senderID}`;
+    const apiUrl = `https://vneerapi.onrender.com/pinoygpt?prompt=${encodeURIComponent(userMessage)}&uid=${senderID}`;
     const response = await axios.get(apiUrl);
 
     // Extract the response message
@@ -68,7 +68,7 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
 
   try {
     // Send the follow-up request to the external API
-    const apiUrl = `https://vneerapi.onrender.com/ai?prompt=${encodeURIComponent(body)}&uid=${senderID}`;
+    const apiUrl = `https://vneerapi.onrender.com/pinoygpt?prompt=${encodeURIComponent(body)}&uid=${senderID}`;
     const response = await axios.get(apiUrl);
 
     // Extract the response message
