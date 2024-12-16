@@ -1,6 +1,6 @@
 module.exports.config = {
     name: "sendcomment",
-    hasPermssion: 0,
+    hasPermssion: 1,
     version: "1.0.0",
     credits: "Jonell Magallanes",
     description: "Send a comment to a specific Facebook post",
