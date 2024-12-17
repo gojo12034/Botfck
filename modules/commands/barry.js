@@ -15,6 +15,12 @@ module.exports.config = {
 
 module.exports.run = async function ({ api, event, args }) {
   const { threadID, messageID, senderID } = event;
+
+  // Check if the user provided any input
+  if (!args.length) {
+    return api.sendMessage("I don't accept blank messages!", threadID, messageID);
+  }
+
   const userMessage = args.join(" ");
 
   // Log the user's message
