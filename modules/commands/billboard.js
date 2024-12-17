@@ -1,5 +1,5 @@
 module.exports.config = {
-	name: "biliboard",
+	name: "billboard",
 	version: "9.7.5",
 	hasPermssion: 0,
 	credits: "John Lester",
