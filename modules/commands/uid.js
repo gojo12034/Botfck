@@ -14,7 +14,7 @@ module.exports.run = function ({ api, event }) {
   function sendUIDMessage(userID) {
     const facebookURL = `https://www.facebook.com/${userID}`;
     const message = `🔗 Facebook Profile:\n${facebookURL}\n\n🆔 User ID: ${userID}`;
-    api.sendMessage(message, event.threadID, event.messageID, (err) => {
+    api.sendMessage(message, event.threadID, (err) => {
       if (err) {
         console.error("Failed to send message:", err);
       } else {
