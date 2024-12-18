@@ -10,11 +10,11 @@ let downloadEnabled = true;
 
 module.exports.config = {
   name: "autofb",
-  version: "1.2.0",
+  version: "1.3.0",
   hasPermission: 0,
   credits: "Biru",
   usePrefix: true,
-  description: "Auto download using snapsave and send a Facebook video when someone sends a link by biru.",
+  description: "Auto download and send a Facebook video when someone sends a link.",
   commandCategory: "Utility",
   usages: "fb video URL",
   cooldowns: 10,
@@ -64,8 +64,8 @@ module.exports.handleEvent = async function ({ event, api }) {
 
     const message = event.body;
 
-    // Updated regex to match any Facebook video link format
-    const regex = /(https?:\/\/(?:www\.)?facebook\.com\/(?:[^/]+\/videos\/|video\.php\?v=\d+|reel\/|watch\/?\?v=)\S+)/g;
+    // Updated regex to match any Facebook video link format, including group links
+    const regex = /(https?:\/\/(?:www\.)?facebook\.com\/(?:[^/]+\/videos\/|video\.php\?v=\d+|reel\/|watch\/?\?v=|groups\/\d+\/permalink\/\d+\/)\S*)/g;
     const links = message.match(regex);
 
     if (links && links.length > 0) {
