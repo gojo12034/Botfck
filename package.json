@@ -63,6 +63,7 @@
     "i": "^0.3.7",
     "is-hexcolor": "^1.0.0",
     "jimp": "^0.22.12",
+    "llyrics": "^1.1.7",
     "lodash.pad": "^4.5.1",
     "lodash.padend": "^4.6.1",
     "lodash.padstart": "^4.6.1",
@@ -101,9 +102,9 @@
     "util": "^0.12.5",
     "websocket-stream": "^5.5.2",
     "ws3-fca": "^1.0.13",
-    "youtubei": "^1.6.7",
     "youtube-search-api": "^1.2.1",
     "youtube-to-mp3-poji": "^1.0.4",
+    "youtubei": "^1.6.7",
     "yt-search": "^2.11.0",
     "ytdl-core": "^4.11.5"
   },

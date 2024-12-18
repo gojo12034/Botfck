@@ -64,7 +64,7 @@
   },
   "help": {
     "autoUnsend": true,
-    "delayUnsend": 60
+    "delayUnsend": 20
   },
   "adminUpdate": {
     "autoUnsend": true,
