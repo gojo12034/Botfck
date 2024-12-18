@@ -1,80 +1,70 @@
-const axios = require("axios");
-const path = require("path");
-const fs = require("fs-extra");
+const { find } = require('llyrics');
 
 module.exports.config = {
-    name: "lyrics",
-    version: "1.0",
-    hasPermission: 0,
-    description: "Get lyrics and artist image",
-    credits: "Biru",
-    usePrefix: true,
-    commandCategory: "Search",
-    usages: "[song title]",
-    cooldowns: 0,
+  name: 'lyrics',
+  version: '1',
+  hasPermission: 0,
+  credits: 'Biru',
+  description: 'View lyrics of a song',
+  usePrefix: true,
+  commandCategory: 'media',
+  usage: 'lyrics [song]',
+  cooldowns: 10
 };
 
-module.exports.run = async function ({ api, event, args }) {
-    try {
-        const title = args.join(" ");
+module.exports.run = async ({ api, event, args }) => {
+  const apiKey = 'TUoXsviG2F-cP3lzP5VtzZ3i1IjsPqHabEeqXq7LugC_1F7e0h6yZFrES7ihiaNc'; // Genius API key here!
 
-        if (!title) {
-            return api.sendMessage(
-                "⛔ Invalid Usage\n━━━━━━━━━━━━━━━\n\nPlease provide a song title to search for lyrics.",
-                event.threadID,
-                event.messageID
-            );
-        }
+  const songName = args.join(' ');
 
-        api.sendMessage("🔎 Searching for lyrics...", event.threadID, event.messageID);
+  if (!songName) {
+    return api.sendMessage('Please enter a song name.', event.threadID, event.messageID);
+  }
 
-        // URL to the new lyrics API
-        const apiUrl = `https://vneerapi.onrender.com/lyrics?song=${encodeURIComponent(title)}`;
-        console.log(`Fetching data from API: ${apiUrl}`);
+  try {
+    // Primary call to find lyrics using the Genius engine
+    const response = await find({
+      song: songName,
+      engine: 'genius',
+      geniusApiKey: apiKey,
+      forceSearch: true
+    });
 
-        const res = await axios.get(apiUrl);
-        const data = res.data;
+    // Check if lyrics were found, fallback to 'musixmatch' engine if not
+    if (!response || !response.lyrics) {
+      const fallbackResponse1 = await find({
+        song: songName,
+        engine: 'musixmatch',
+        forceSearch: true
+      });
 
-        if (!data || !data.lyrics) {
-            return api.sendMessage(
-                `No lyrics found for "${title}". Please try with a different song.`,
-                event.threadID,
-                event.messageID
-            );
-        }
+      if (fallbackResponse1 && fallbackResponse1.lyrics) {
+        const fallbackMessage1 = `🎶 *${fallbackResponse1.title}* by ${fallbackResponse1.artist}\n\n${fallbackResponse1.lyrics}`;
+        return api.sendMessage(fallbackMessage1, event.threadID);
+      }
 
-        // Prepare the message with song title, artist, and lyrics
-        const message = `🎵 Lyrics for "${data.title}" by ${data.artist}\n━━━━━━━━━━━━━━━\n\n${data.lyrics}`;
+      // Fallback to 'youtube' engine if musixmatch also fails
+      const fallbackResponse2 = await find({
+        song: songName,
+        engine: 'youtube',
+        forceSearch: true
+      });
 
-        // Check if there is an artist image URL, handle accordingly
-        if (data.artistImage) {
-            const artistImageResponse = await axios.get(data.artistImage, { responseType: "arraybuffer" });
-            const imageFileName = `${data.title.replace(/\s/g, "_").toLowerCase()}_image.jpg`;
-            const imagePath = path.join(__dirname, "images", imageFileName);
-            await fs.outputFile(imagePath, artistImageResponse.data);
+      if (fallbackResponse2 && fallbackResponse2.lyrics) {
+        const fallbackMessage2 = `🎶 *${fallbackResponse2.title}* by ${fallbackResponse2.artist}\n\n${fallbackResponse2.lyrics}`;
+        return api.sendMessage(fallbackMessage2, event.threadID);
+      }
 
-            const imgData = fs.createReadStream(imagePath);
-            await api.sendMessage({
-                body: message,
-                attachment: imgData,
-            }, event.threadID);
-
-            // Clean up image file after sending
-            await fs.remove(imagePath);
-            console.log(`Image file ${imagePath} removed.`);
-        } else {
-            // Send message without image if no artist image is found
-            await api.sendMessage(message, event.threadID, event.messageID);
-        }
-
-        console.log(`Lyrics successfully sent for "${data.title}"`);
-
-    } catch (error) {
-        console.error("Error fetching lyrics:", error);
-        return api.sendMessage(
-            "An error occurred while fetching lyrics. Please try again later.",
-            event.threadID,
-            event.messageID
-        );
+      // If all engines fail
+      return api.sendMessage('Sorry, I couldn\'t find the lyrics for that song.', event.threadID, event.messageID);
     }
+
+    // If lyrics were found in the primary Genius engine
+    const { lyrics, title, artist } = response;
+    const message = `🎶 *${title}* by ${artist}\n\n${lyrics}`;
+    api.sendMessage(message, event.threadID);
+  } catch (error) {
+    console.error('llyrics error:', error);
+    api.sendMessage('Failed to fetch lyrics.', event.threadID, event.messageID);
+  }
 };
