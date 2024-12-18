@@ -15,6 +15,11 @@ module.exports.config = {
 
 module.exports.run = async function ({ api, event, args }) {
   const { threadID, messageID, senderID } = event;
+
+  if (!args.length) {
+    return api.sendMessage("How May I Assist You? Please put a message.", threadID, messageID);
+  }
+
   const userMessage = args.join(" ");
 
   // Log the user's message
