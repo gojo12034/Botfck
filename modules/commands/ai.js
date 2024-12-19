@@ -17,10 +17,11 @@ module.exports.run = async function ({ api, event, args }) {
   const { threadID, messageID, senderID } = event;
 
   if (!args.length) {
-    return api.sendMessage("I don't accept blank messages!", threadID, messageID);
+    return api.sendMessage("I don't accept blank messages!", threadID, messageID); // Attach response to original message
   }
 
   const userMessage = args.join(" ");
+
   console.log("User's Message:", userMessage);
 
   try {
@@ -28,17 +29,26 @@ module.exports.run = async function ({ api, event, args }) {
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
-    // Reply to the user's specific message (using replyTo with messageID)
+    // Send response as a reply to the original user's message
     api.sendMessage(
-      { 
-        body: responseMessage,   // The message content
-        replyTo: messageID       // Reply directly to the user's message
-      },
-      threadID                  // The thread ID
+      { body: responseMessage, replyToMessage: messageID }, // Attach to original message
+      threadID,
+      (err, info) => {
+        if (err) return console.error("Error sending message:", err);
+
+        console.log("Bot's Response:", responseMessage);
+
+        global.client.handleReply.push({
+          name: this.config.name,
+          messageID: info.messageID,
+          author: senderID, // Original sender
+          type: "reply"
+        });
+      }
     );
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
-    api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
+    api.sendMessage("I'm busy right now, try again later.", threadID, messageID); // Attach error response
   }
 };
 
@@ -52,16 +62,25 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
-    // Send reply directly to the user's specific message
+    // Send response as a reply to the original user's message
     api.sendMessage(
-      { 
-        body: responseMessage,   // The message content
-        replyTo: messageID       // Reply directly to the user's message
-      },
-      threadID                  // The thread ID
+      { body: responseMessage, replyToMessage: messageID }, // Attach to user's reply
+      threadID,
+      (err, info) => {
+        if (err) return console.error("Error sending message:", err);
+
+        console.log("Bot's Response:", responseMessage);
+
+        global.client.handleReply.push({
+          name: this.config.name,
+          messageID: info.messageID,
+          author: senderID, // Update to replying user's ID
+          type: "reply"
+        });
+      }
     );
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
-    api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
+    api.sendMessage("I'm busy right now, try again later.", threadID, messageID); // Attach error response
   }
 };
