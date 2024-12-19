@@ -201,13 +201,13 @@ module.exports = function ({ api, models, Users, Threads, Currencies, ...rest })
     var permssion = 0;
     var threadInfoo =
   threadInfo.get(threadID) || (await Threads.getInfo(threadID));
-
 if (!threadInfoo || !threadInfoo.adminIDs) {
-  logger.log(`Unable to fetch thread info or adminIDs for threadID: ${threadID}`);
-  return api.sendMessage("", threadID, messageID);
+  logger.log("Thread info or adminIDs could not be retrieved. Skipping...");
+  threadInfoo = { adminIDs: [] }; // Assign empty adminIDs to avoid crash
 }
 
 const find = threadInfoo.adminIDs.find((el) => el.id == senderID);
+    
     
     if (ADMINBOT.includes(senderID.toString())) permssion = 2;
     else if (!ADMINBOT.includes(senderID) && find) permssion = 1;
