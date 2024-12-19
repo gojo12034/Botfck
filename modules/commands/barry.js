@@ -29,12 +29,9 @@ module.exports.run = async function ({ api, event, args }) {
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
     api.sendMessage(
-      {
-        body: responseMessage
-      },
-      threadID,
-      messageID,
-      (err, info) => {
+      responseMessage, // The body of the message
+      threadID,        // The thread ID
+      (err, info) => { // The callback function
         if (err) return console.error("Error sending message:", err);
 
         console.log("Bot's Response:", responseMessage);
@@ -78,12 +75,9 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
     api.sendMessage(
-      {
-        body: responseMessage
-      },
-      threadID,
-      messageID,
-      (err, info) => {
+      responseMessage, // The body of the message
+      threadID,        // The thread ID
+      (err, info) => { // The callback function
         if (err) return console.error("Error sending message:", err);
 
         console.log("Bot's Response:", responseMessage);
