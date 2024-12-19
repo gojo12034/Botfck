@@ -28,26 +28,13 @@ module.exports.run = async function ({ api, event, args }) {
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
-    // Reply to the user's specific message
+    // Reply to the user's specific message (using replyTo with messageID)
     api.sendMessage(
-      {
-        body: responseMessage
+      { 
+        body: responseMessage,   // The message content
+        replyTo: messageID       // Reply directly to the user's message
       },
-      threadID,
-      messageID,
-      (err, info) => {
-        if (err) return console.error("Error sending message:", err);
-
-        console.log("Bot's Response:", responseMessage);
-
-        // Push the conversation state for further replies
-        global.client.handleReply.push({
-          name: this.config.name,
-          messageID: info.messageID,
-          author: senderID,
-          type: "reply"
-        });
-      }
+      threadID                  // The thread ID
     );
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
@@ -65,26 +52,13 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
-    // Reply directly to the user's specific message
+    // Send reply directly to the user's specific message
     api.sendMessage(
-      {
-        body: responseMessage
+      { 
+        body: responseMessage,   // The message content
+        replyTo: messageID       // Reply directly to the user's message
       },
-      threadID,
-      messageID,
-      (err, info) => {
-        if (err) return console.error("Error sending message:", err);
-
-        console.log("Bot's Response:", responseMessage);
-
-        // Update conversation state for further replies
-        global.client.handleReply.push({
-          name: this.config.name,
-          messageID: info.messageID,
-          author: senderID,
-          type: "reply"
-        });
-      }
+      threadID                  // The thread ID
     );
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
