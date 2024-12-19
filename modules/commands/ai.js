@@ -31,10 +31,10 @@ module.exports.run = async function ({ api, event, args }) {
     // Reply to the user's specific message
     api.sendMessage(
       {
-        body: responseMessage,
-        replyTo: messageID
+        body: responseMessage
       },
       threadID,
+      messageID,
       (err, info) => {
         if (err) return console.error("Error sending message:", err);
 
@@ -51,7 +51,7 @@ module.exports.run = async function ({ api, event, args }) {
     );
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
-    api.sendMessage("I'm busy right now, try again later.", threadID);
+    api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
   }
 };
 
@@ -68,10 +68,10 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
     // Reply directly to the user's specific message
     api.sendMessage(
       {
-        body: responseMessage,
-        replyTo: messageID
+        body: responseMessage
       },
       threadID,
+      messageID,
       (err, info) => {
         if (err) return console.error("Error sending message:", err);
 
@@ -88,6 +88,6 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
     );
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
-    api.sendMessage("I'm busy right now, try again later.", threadID);
+    api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
   }
 };
