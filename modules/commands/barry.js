@@ -2,51 +2,32 @@ const axios = require('axios');
 
 module.exports.config = {
   name: "barry",
-  version: "0.0.6",
+  version: "0.0.5",
   hasPermssion: 0,
-  credits: "Biru Aren",
+  credits: "Biru Aren, updated by AI",
   description: "Just a bot",
   commandCategory: "ai",
   usePrefix: false,
-  usages: "ask anything or reply with images",
+  usages: "ask anything",
   cooldowns: 5,
   dependencies: { axios: "" }
 };
 
 module.exports.run = async function ({ api, event, args }) {
-  const { threadID, messageID, senderID, attachments } = event;
+  const { threadID, messageID, senderID } = event;
 
-  if (!args.length && (!attachments || attachments.length === 0)) {
-    return api.sendMessage("I don't accept blank messages or empty replies!", threadID, messageID);
+  if (!args.length) {
+    return api.sendMessage("I don't accept blank messages!", threadID, messageID);
   }
 
-  let userMessage = args.join(" ") || "";
-
-  // Extract image URLs if attachments exist
-  const imageUrls = [];
-  if (attachments && attachments.length > 0) {
-    for (const attachment of attachments) {
-      if (attachment.type === "photo") {
-        imageUrls.push(attachment.url);
-      }
-    }
-  }
-
+  const userMessage = args.join(" ");
   console.log("User's Message:", userMessage);
-  console.log("Image URLs:", imageUrls);
 
   try {
-    const apiUrl = `https://vneerapi.onrender.com/barry-ai`;
-    const payload = {
-      prompt: userMessage,
-      uid: senderID,
-      images: imageUrls.length > 0 ? imageUrls : null // Include images if available
-    };
-
-    const response = await axios.post(apiUrl, payload); // Changed to POST for payload flexibility
+    const apiUrl = `https://vneerapi.onrender.com/barry-ai?prompt=${encodeURIComponent(userMessage)}&uid=${senderID}`;
+    const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
-    // Reply to the user's specific message
     api.sendMessage(
       {
         body: responseMessage,
@@ -58,7 +39,6 @@ module.exports.run = async function ({ api, event, args }) {
 
         console.log("Bot's Response:", responseMessage);
 
-        // Push the conversation state for further replies
         global.client.handleReply.push({
           name: this.config.name,
           messageID: info.messageID,
@@ -78,32 +58,25 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
 
   console.log("User Reply from:", senderID, "Message:", body);
 
-  let userMessage = body || "";
-
-  // Extract image URLs if attachments exist
-  const imageUrls = [];
-  if (attachments && attachments.length > 0) {
-    for (const attachment of attachments) {
-      if (attachment.type === "photo") {
-        imageUrls.push(attachment.url);
-      }
-    }
-  }
-
-  console.log("Image URLs:", imageUrls);
-
   try {
-    const apiUrl = `https://vneerapi.onrender.com/barry-ai`;
-    const payload = {
-      prompt: userMessage,
-      uid: senderID,
-      images: imageUrls.length > 0 ? imageUrls : null // Include images if available
-    };
+    // Check for attachments and collect image URLs
+    let imageUrls = [];
+    if (attachments && attachments.length > 0) {
+      imageUrls = attachments
+        .filter(attachment => attachment.type === "photo")
+        .map(attachment => attachment.url);
 
-    const response = await axios.post(apiUrl, payload); // Changed to POST for payload flexibility
+      console.log("Image URLs:", imageUrls);
+    }
+
+    // Format the prompt to include image URLs
+    const promptParts = [body, ...imageUrls].filter(Boolean); // Combine text and URLs, excluding empty parts
+    const apiPrompt = promptParts.join(" ");
+
+    const apiUrl = `https://vneerapi.onrender.com/barry-ai?prompt=${encodeURIComponent(apiPrompt)}&uid=${senderID}`;
+    const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
-    // Reply directly to the user's specific message
     api.sendMessage(
       {
         body: responseMessage,
@@ -115,7 +88,6 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
 
         console.log("Bot's Response:", responseMessage);
 
-        // Update conversation state for further replies
         global.client.handleReply.push({
           name: this.config.name,
           messageID: info.messageID,
