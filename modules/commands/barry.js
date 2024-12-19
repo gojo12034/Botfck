@@ -2,7 +2,7 @@ const axios = require('axios');
 
 module.exports.config = {
   name: "barry",
-  version: "0.0.5",
+  version: "0.0.6",
   hasPermssion: 0,
   credits: "Biru Aren, updated by AI",
   description: "Just a bot",
@@ -17,7 +17,7 @@ module.exports.run = async function ({ api, event, args }) {
   const { threadID, messageID, senderID } = event;
 
   if (!args.length) {
-    return api.sendMessage("I don't accept blank messages!", threadID, messageID); // Attach response to original message
+    return api.sendMessage("I don't accept blank messages!", threadID, messageID);
   }
 
   const userMessage = args.join(" ");
@@ -29,22 +29,27 @@ module.exports.run = async function ({ api, event, args }) {
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
-    // Send response as a reply to the original user's message
-    api.sendMessage(responseMessage, threadID, messageID, (err, info) => {
-      if (err) return console.error("Error sending message:", err);
+    // Send the response and attach it to the original message
+    api.sendMessage(
+      { body: responseMessage, attachment: null },
+      threadID,
+      (err, info) => {
+        if (err) return console.error("Error sending message:", err);
 
-      console.log("Bot's Response:", responseMessage);
+        console.log("Bot's Response:", responseMessage);
 
-      global.client.handleReply.push({
-        name: this.config.name,
-        messageID: info.messageID,
-        author: senderID, // Original sender
-        type: "reply"
-      });
-    });
+        global.client.handleReply.push({
+          name: this.config.name,
+          messageID: info.messageID,
+          author: senderID, // Original sender
+          type: "reply"
+        });
+      },
+      messageID // Reply to the original message
+    );
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
-    api.sendMessage("I'm busy right now, try again later.", threadID, messageID); // Attach error response
+    api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
   }
 };
 
@@ -58,21 +63,26 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
-    // Send response as a reply to the original user's message
-    api.sendMessage(responseMessage, threadID, messageID, (err, info) => {
-      if (err) return console.error("Error sending message:", err);
+    // Send the response and attach it to the user's reply
+    api.sendMessage(
+      { body: responseMessage, attachment: null },
+      threadID,
+      (err, info) => {
+        if (err) return console.error("Error sending message:", err);
 
-      console.log("Bot's Response:", responseMessage);
+        console.log("Bot's Response:", responseMessage);
 
-      global.client.handleReply.push({
-        name: this.config.name,
-        messageID: info.messageID,
-        author: senderID, // Update to replying user's ID
-        type: "reply"
-      });
-    });
+        global.client.handleReply.push({
+          name: this.config.name,
+          messageID: info.messageID,
+          author: senderID, // Update to replying user's ID
+          type: "reply"
+        });
+      },
+      messageID // Reply to the original message
+    );
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
-    api.sendMessage("I'm busy right now, try again later.", threadID, messageID); // Attach error response
+    api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
   }
 };
