@@ -1,10 +1,10 @@
-const axios = require('axios');
+const axios = require("axios");
 
 module.exports.config = {
   name: "barry",
   version: "0.0.5",
   hasPermssion: 0,
-  credits: "Biru Aren, updated by AI",
+  credits: "Biru Aren",
   description: "Just a bot",
   commandCategory: "ai",
   usePrefix: false,
@@ -26,16 +26,15 @@ module.exports.run = async function ({ api, event, args }) {
   try {
     const apiUrl = `https://vneerapi.onrender.com/barry-ai?prompt=${encodeURIComponent(userMessage)}&uid=${senderID}`;
     const response = await axios.get(apiUrl);
+
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
+    api.sendMessage(responseMessage, threadID, (err, info) => {
+      if (err) return console.error("Error sending message:", err);
 
-    api.sendMessage(
-      responseMessage, // The body of the message
-      threadID,        // The thread ID
-      (err, info) => { // The callback function
-        if (err) return console.error("Error sending message:", err);
+      console.log("Bot's Response:", responseMessage);
 
-        console.log("Bot's Response:", responseMessage);
-
+      // Ensure `info` exists before pushing to `global.client.handleReply`
+      if (info?.messageID) {
         global.client.handleReply.push({
           name: this.config.name,
           messageID: info.messageID,
@@ -43,7 +42,7 @@ module.exports.run = async function ({ api, event, args }) {
           type: "reply"
         });
       }
-    );
+    });
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
     api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
@@ -56,32 +55,24 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
   console.log("User Reply from:", senderID, "Message:", body);
 
   try {
-    // Check for attachments and collect image URLs
-    let imageUrls = [];
-    if (attachments && attachments.length > 0) {
-      imageUrls = attachments
-        .filter(attachment => attachment.type === "photo")
-        .map(attachment => attachment.url);
+    // Collect image URLs from attachments
+    const imageUrls = (attachments || [])
+      .filter(attachment => attachment.type === "photo")
+      .map(attachment => attachment.url);
 
-      console.log("Image URLs:", imageUrls);
-    }
-
-    // Format the prompt to include image URLs
-    const promptParts = [body, ...imageUrls].filter(Boolean); // Combine text and URLs, excluding empty parts
+    const promptParts = [body, ...imageUrls].filter(Boolean);
     const apiPrompt = promptParts.join(" ");
 
     const apiUrl = `https://vneerapi.onrender.com/barry-ai?prompt=${encodeURIComponent(apiPrompt)}&uid=${senderID}`;
     const response = await axios.get(apiUrl);
+
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
+    api.sendMessage(responseMessage, threadID, (err, info) => {
+      if (err) return console.error("Error sending message:", err);
 
-    api.sendMessage(
-      responseMessage, // The body of the message
-      threadID,        // The thread ID
-      (err, info) => { // The callback function
-        if (err) return console.error("Error sending message:", err);
+      console.log("Bot's Response:", responseMessage);
 
-        console.log("Bot's Response:", responseMessage);
-
+      if (info?.messageID) {
         global.client.handleReply.push({
           name: this.config.name,
           messageID: info.messageID,
@@ -89,7 +80,7 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
           type: "reply"
         });
       }
-    );
+    });
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
     api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
