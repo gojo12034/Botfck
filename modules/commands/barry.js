@@ -4,7 +4,7 @@ module.exports.config = {
   name: "barry",
   version: "0.0.6",
   hasPermssion: 0,
-  credits: "Biru Aren, updated by AI",
+  credits: "Biru Aren",
   description: "Just a bot",
   commandCategory: "ai",
   usePrefix: false,
