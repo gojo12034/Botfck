@@ -30,22 +30,18 @@ module.exports.run = async function ({ api, event, args }) {
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
     // Send response as a reply to the original user's message
-    api.sendMessage(
-      { body: responseMessage, messageReply: messageID }, // Correct reply method
-      threadID,
-      (err, info) => {
-        if (err) return console.error("Error sending message:", err);
+    api.sendMessage(responseMessage, threadID, messageID, (err, info) => {
+      if (err) return console.error("Error sending message:", err);
 
-        console.log("Bot's Response:", responseMessage);
+      console.log("Bot's Response:", responseMessage);
 
-        global.client.handleReply.push({
-          name: this.config.name,
-          messageID: info.messageID,
-          author: senderID, // Original sender
-          type: "reply"
-        });
-      }
-    );
+      global.client.handleReply.push({
+        name: this.config.name,
+        messageID: info.messageID,
+        author: senderID, // Original sender
+        type: "reply"
+      });
+    });
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
     api.sendMessage("I'm busy right now, try again later.", threadID, messageID); // Attach error response
@@ -63,22 +59,18 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
     // Send response as a reply to the original user's message
-    api.sendMessage(
-      { body: responseMessage, messageReply: messageID }, // Correct reply method
-      threadID,
-      (err, info) => {
-        if (err) return console.error("Error sending message:", err);
+    api.sendMessage(responseMessage, threadID, messageID, (err, info) => {
+      if (err) return console.error("Error sending message:", err);
 
-        console.log("Bot's Response:", responseMessage);
+      console.log("Bot's Response:", responseMessage);
 
-        global.client.handleReply.push({
-          name: this.config.name,
-          messageID: info.messageID,
-          author: senderID, // Update to replying user's ID
-          type: "reply"
-        });
-      }
-    );
+      global.client.handleReply.push({
+        name: this.config.name,
+        messageID: info.messageID,
+        author: senderID, // Update to replying user's ID
+        type: "reply"
+      });
+    });
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
     api.sendMessage("I'm busy right now, try again later.", threadID, messageID); // Attach error response
