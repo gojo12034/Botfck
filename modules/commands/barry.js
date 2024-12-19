@@ -4,7 +4,7 @@ module.exports.config = {
   name: "barry",
   version: "0.0.5",
   hasPermssion: 0,
-  credits: "Biru Aren",
+  credits: "Biru Aren, updated by AI",
   description: "Just a bot",
   commandCategory: "ai",
   usePrefix: false,
@@ -31,7 +31,7 @@ module.exports.run = async function ({ api, event, args }) {
 
     // Send response as a reply to the original user's message
     api.sendMessage(
-      { body: responseMessage, replyToMessage: messageID }, // Attach to original message
+      { body: responseMessage, messageReply: messageID }, // Correct reply method
       threadID,
       (err, info) => {
         if (err) return console.error("Error sending message:", err);
@@ -64,7 +64,7 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
 
     // Send response as a reply to the original user's message
     api.sendMessage(
-      { body: responseMessage, replyToMessage: messageID }, // Attach to user's reply
+      { body: responseMessage, messageReply: messageID }, // Correct reply method
       threadID,
       (err, info) => {
         if (err) return console.error("Error sending message:", err);
