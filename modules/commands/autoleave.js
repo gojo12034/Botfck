@@ -64,7 +64,7 @@ module.exports.handleEvent = async function({ api, event }) {
         if (!isThreadAllowed(currentThreadID)) {
             console.log(`Thread ID ${currentThreadID} is not allowed. Leaving the group after 20 seconds.`);
             await api.sendMessage(
-                "Hi, this is Barry! I can't be used in groups for now. You can chat me privately though😉. Just think about it, you and I chatting with each other without being seen by others in a group. Exciting!😏",
+                "Hi, this is Barry! I can't be used in groups for now.",
                 currentThreadID
             );
 
