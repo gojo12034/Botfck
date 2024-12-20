@@ -199,34 +199,32 @@ module.exports = function ({ api, models, Users, Threads, Currencies, ...rest })
       }
 
     var permssion = 0;
-    var threadInfoo =
-  threadInfo.get(threadID) || (await Threads.getInfo(threadID));
-if (!threadInfoo || !threadInfoo.adminIDs) {
-  logger.log("Thread info or adminIDs could not be retrieved. Skipping...");
-  threadInfoo = { adminIDs: [] }; // Assign empty adminIDs to avoid crash
-}
 
-const find = threadInfoo.adminIDs.find((el) => el.id == senderID);
-    
-    
-    if (ADMINBOT.includes(senderID.toString())) permssion = 2;
-    else if (!ADMINBOT.includes(senderID) && find) permssion = 1;
-    if (
-      command &&
-      command.config &&
-      command.config.hasPermssion &&
-      command.config.hasPermssion > permssion
-    ) {
-      return api.sendMessage(
-        global.getText(
-          "handleCommand",
-          "permissionNotEnough",
-          command.config.name,
-        ),
-        event.threadID,
-        event.messageID,
-      );
-    }
+if (command && command.config && command.config.hasPermssion) {
+  let threadInfoo =
+    threadInfo.get(threadID) || (await Threads.getInfo(threadID));
+  if (!threadInfoo || !threadInfoo.adminIDs) {
+    logger.log("Thread info or adminIDs could not be retrieved. Skipping...");
+    threadInfoo = { adminIDs: [] };
+  }
+
+  const find = threadInfoo.adminIDs.find((el) => el.id == senderID);
+
+  if (ADMINBOT.includes(senderID.toString())) permssion = 2;
+  else if (!ADMINBOT.includes(senderID) && find) permssion = 1;
+
+  if (command.config.hasPermssion > permssion) {
+    return api.sendMessage(
+      global.getText(
+        "handleCommand",
+        "permissionNotEnough",
+        command.config.name,
+      ),
+      event.threadID,
+      event.messageID,
+    );
+  }
+}
 
     if (
       command &&
