@@ -172,22 +172,21 @@ try {
 }
 
 function onBot(retryCount = 0) {
-  const MAX_RETRIES = 5; // Maximum number of retries
-  const RETRY_DELAY = 5000; // Delay in milliseconds between retries
+  const MAX_RETRIES = 5; // Limit retries to prevent infinite loops
+  const RETRY_DELAY = 5000; // 5 seconds delay between retries
 
   let loginData;
-
   if (appState === null) {
     loginData = {
       email: config.email,
-      password: config.password,
+      password: config.password
     };
   }
 
   if (config.useEnvForCredentials) {
     loginData = {
       email: process.env[config.email],
-      password: process.env[config.password],
+      password: process.env[config.password]
     };
   }
 
@@ -195,29 +194,21 @@ function onBot(retryCount = 0) {
 
   login(loginData, async (err, api) => {
     if (err) {
-      if (err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH') {
-        console.log(
-          `Connection error (${err.code}). Retrying in ${
-            RETRY_DELAY / 1000
-          } seconds... (${retryCount + 1}/${MAX_RETRIES})`
-        );
+      console.error(`Login Error: ${err.message}`);
 
+      if (['ETIMEDOUT', 'ENETUNREACH'].includes(err.code)) {
         if (retryCount < MAX_RETRIES) {
+          console.log(`Retrying connection... Attempt ${retryCount + 1} of ${MAX_RETRIES}`);
           setTimeout(() => onBot(retryCount + 1), RETRY_DELAY);
         } else {
           console.error('Max retries reached. Exiting process.');
           process.exit(1);
         }
-      } else if (err.error === 'Error retrieving userID.') {
-        console.log(err.error);
-        process.exit(0);
       } else {
-        console.log(err);
-        return process.exit(0);
+        process.exit(1); // Exit for non-retryable errors
       }
       return;
     }
-
   const custom = require('./custom');
   custom({ api });
   const fbstate = api.getAppState();
