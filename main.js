@@ -187,18 +187,43 @@ function onBot() {
     }
   }
   loginData = { appState: appState };
-  login(loginData, async (err, api) => {
-    if (err) {
-      if (err.error == 'Error retrieving userID. This can be caused by a lot of things, including getting blocked by Facebook for logging in from an unknown location. Try logging in with a browser to verify.') {
-        console.log(err.error)
-        process.exit(0)
-      } else {
-        console.log(err)
-        return process.exit(0)
-      }
-    }
-    const custom = require('./custom');
-    custom({ api });
+  const MAX_RETRIES = 5; // Maximum number of retries
+const RETRY_DELAY = 5000; // Delay between retries in milliseconds (5s)
+
+async function retryLogin(loginData, retries = MAX_RETRIES) {
+  return new Promise((resolve, reject) => {
+    const attemptLogin = (currentAttempt) => {
+      login(loginData, async (err, api) => {
+        if (err) {
+          if (['ETIMEDOUT', 'ENETUNREACH'].includes(err.code) && currentAttempt < retries) {
+            console.log(`Network issue detected (Attempt ${currentAttempt + 1}/${retries}): Retrying in ${RETRY_DELAY / 1000} seconds...`);
+            setTimeout(() => attemptLogin(currentAttempt + 1), RETRY_DELAY);
+          } else {
+            console.error('Login failed after retries:', err);
+            reject(err);
+          }
+        } else {
+          console.log('Login successful!');
+          resolve(api);
+        }
+      });
+    };
+    attemptLogin(0);
+  });
+}
+
+// Retry logic for login
+try {
+  const api = await retryLogin(loginData);
+  const custom = require('./custom');
+  custom({ api });
+  // Place the rest of your existing logic here
+} catch (err) {
+  console.error('Bot failed to start due to network issues:', err);
+  process.exit(1);
+}
+  
+    
     const fbstate = api.getAppState();
     api.setOptions(global.config.FCAOption);
       fs.writeFileSync('appstate.json', JSON.stringify(api.getAppState()));
