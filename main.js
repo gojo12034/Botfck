@@ -171,60 +171,56 @@ try {
  // return;
 }
 
-function onBot() {
+function onBot(retryCount = 0) {
+  const MAX_RETRIES = 5; // Maximum number of retries
+  const RETRY_DELAY = 5000; // Delay in milliseconds between retries
+
   let loginData;
+
   if (appState === null) {
     loginData = {
       email: config.email,
-      password: config.password
-    }
+      password: config.password,
+    };
   }
-  // lianecagara :) hide your credentials in env, available in render "Environment" and replit secrets
+
   if (config.useEnvForCredentials) {
     loginData = {
       email: process.env[config.email],
-      password: process.env[config.password]
-    }
-  }
-  loginData = { appState: appState };
-  const MAX_RETRIES = 5; // Maximum number of retries
-const RETRY_DELAY = 5000; // Delay between retries in milliseconds (5s)
-
-async function retryLogin(loginData, retries = MAX_RETRIES) {
-  return new Promise((resolve, reject) => {
-    const attemptLogin = (currentAttempt) => {
-      login(loginData, async (err, api) => {
-        if (err) {
-          if (['ETIMEDOUT', 'ENETUNREACH'].includes(err.code) && currentAttempt < retries) {
-            console.log(`Network issue detected (Attempt ${currentAttempt + 1}/${retries}): Retrying in ${RETRY_DELAY / 1000} seconds...`);
-            setTimeout(() => attemptLogin(currentAttempt + 1), RETRY_DELAY);
-          } else {
-            console.error('Login failed after retries:', err);
-            reject(err);
-          }
-        } else {
-          console.log('Login successful!');
-          resolve(api);
-        }
-      });
+      password: process.env[config.password],
     };
-    attemptLogin(0);
-  });
-}
+  }
 
-// Retry logic for login
-try {
-  const api = await retryLogin(loginData);
+  loginData = { appState: appState };
+
+  login(loginData, async (err, api) => {
+    if (err) {
+      if (err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH') {
+        console.log(
+          `Connection error (${err.code}). Retrying in ${
+            RETRY_DELAY / 1000
+          } seconds... (${retryCount + 1}/${MAX_RETRIES})`
+        );
+
+        if (retryCount < MAX_RETRIES) {
+          setTimeout(() => onBot(retryCount + 1), RETRY_DELAY);
+        } else {
+          console.error('Max retries reached. Exiting process.');
+          process.exit(1);
+        }
+      } else if (err.error === 'Error retrieving userID.') {
+        console.log(err.error);
+        process.exit(0);
+      } else {
+        console.log(err);
+        return process.exit(0);
+      }
+      return;
+    }
+
   const custom = require('./custom');
   custom({ api });
-  // Place the rest of your existing logic here
-} catch (err) {
-  console.error('Bot failed to start due to network issues:', err);
-  process.exit(1);
-}
-  
-    
-    const fbstate = api.getAppState();
+  const fbstate = api.getAppState();
     api.setOptions(global.config.FCAOption);
       fs.writeFileSync('appstate.json', JSON.stringify(api.getAppState()));
     let d = api.getAppState();
