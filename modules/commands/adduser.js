@@ -4,7 +4,7 @@ module.exports.config = {
     name: "adduser",
     version: "2.4.3",
     hasPermssion: 0,
-    credits: "Jonell Magallanes",
+    credits: "jonnel api by Biru",
     description: "Add user to the group",
     usePrefix: true,
     commandCategory: "group",
@@ -28,11 +28,11 @@ module.exports.run = async function ({ api, event, args }) {
         let uid;
 
         if (fbUrlRegex.test(input)) {
-            const res = await axios.get(`https://facebook-uid-ccpoject.vercel.app/fb?url=${input}`);
+            const res = await axios.get(`https://vneerapi.onrender.com/fbid?url=${input}`);
             api.editMessage("Verifying User......", prepare.messageID, threadID);
 
-            if (res.data.code) {
-                uid = res.data.code;
+            if (res.data.status && res.data.facebookId) {
+                uid = res.data.facebookId;
             } else {
                 return api.editMessage("Failed to fetch the Facebook UID.", prepare.messageID, threadID);
             }
