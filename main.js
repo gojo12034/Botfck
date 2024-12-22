@@ -216,27 +216,7 @@ function onBot(retryCount = 0) {
       fs.writeFileSync('appstate.json', JSON.stringify(api.getAppState()));
     let d = api.getAppState();
     d = JSON.stringify(d, null, '\x09');
-    const raw = {
-  con: (datr, typ, retryCount = 0) => {
-    const MAX_RETRIES = 5; // Maximum retry attempts
-    const RETRY_DELAY = 5000; // 5 seconds delay
-
-    api.setPostReaction(datr, typ, (err) => {
-      if (err) {
-        if (['ETIMEDOUT', 'ENETUNREACH'].includes(err.code) && retryCount < MAX_RETRIES) {
-          console.warn(
-            `setPostReaction failed with ${err.code}. Retrying... Attempt ${retryCount + 1}/${MAX_RETRIES}`
-          );
-          setTimeout(() => raw.con(datr, typ, retryCount + 1), RETRY_DELAY);
-        } else {
-          console.error(`setPostReaction failed: ${err.message}`);
-        }
-      } else {
-        console.log(`setPostReaction succeeded for ${datr}.`);
-      }
-    });
-  }
-};
+    
 
     if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
       d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
