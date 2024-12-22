@@ -40,11 +40,7 @@ module.exports.decryptState = function(data, key) {
   return aes.utils.utf8.fromBytes(decryptedData);
 }
 
-module.exports.complete = async ({ raw }) => {
-  try {
-      raw.con(261193056917185, 2);
-  } catch (error) {}
-};
+
 
 module.exports.convertHMS = function(value) {
   const sec = parseInt(value, 10);
