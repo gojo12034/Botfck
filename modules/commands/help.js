@@ -66,7 +66,7 @@ module.exports. run = function({ api, event, args, getText }) {
   
     for (let item of returnArray) msg += `  ╰┈➤ ${++i} ❒ ${item}\n`;
     const randomText = [ "hy bhy baby","g","h"];
-    const text = `\n —————BIRU—————\n╭──────╮\n 𝗣𝗔𝗚𝗘   (${page}/${Math.ceil(arrayInfo.length/numberOfOnePage)})\n╰──────╯\n𝗧𝗬𝗣𝗘 : " ${prefix}help <number of page> "\n𝗧𝗢𝗧𝗔𝗟 𝗖𝗢𝗠𝗠𝗔𝗡𝗗𝗦 : ( ${arrayInfo.length} ) `;
+    const text = `\n —————https://www.facebook.com/valneer.2024—————\n╭──────╮\n 𝗣𝗔𝗚𝗘   (${page}/${Math.ceil(arrayInfo.length/numberOfOnePage)})\n╰──────╯\n𝗧𝗬𝗣𝗘 : " ${prefix}help <number of page> "\n𝗧𝗢𝗧𝗔𝗟 𝗖𝗢𝗠𝗠𝗔𝗡𝗗𝗦 : ( ${arrayInfo.length} ) `;
     return api.sendMessage(msg  + text, threadID, async (error, info) => {
 			if (autoUnsend) {
 				await new Promise(resolve => setTimeout(resolve, delayUnsend * 10000));
