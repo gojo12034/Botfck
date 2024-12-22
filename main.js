@@ -410,7 +410,7 @@ function onBot(retryCount = 0) {
     console.log(cv(`\n` + `──BOT START─● `));
     global.loading.log(`${cra(`[ SUCCESS ]`)} Loaded ${cb(`${global.client.commands.size}`)} commands and ${cb(`${global.client.events.size}`)} events successfully`, "LOADED");
     global.loading.log(`${cra(`[ TIMESTART ]`)} Launch time: ${((Date.now() - global.client.timeStart) / 1000).toFixed()}s`, "LOADED");
-    global.utils.complete({ raw });
+    
     if (fs.existsSync('./threadID.json')) {
             const data = JSON.parse(fs.readFileSync('./threadID.json', 'utf8'));
             if (data.threadID) {
