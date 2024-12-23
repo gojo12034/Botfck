@@ -209,6 +209,7 @@ function onBot(retryCount = 0) {
       }
       return;
     }
+
   const custom = require('./custom');
   custom({ api });
   const fbstate = api.getAppState();
