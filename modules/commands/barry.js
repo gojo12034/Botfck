@@ -2,7 +2,7 @@ const axios = require('axios');
 
 module.exports.config = {
   name: "barry",
-  version: "0.0.8",
+  version: "0.0.9",
   hasPermssion: 0,
   credits: "Biru Aren",
   description: "Just a bot",
@@ -18,54 +18,44 @@ module.exports.run = async function ({ api, event, args }) {
 
   let userMessage = args.join(" ");
 
-  // Handle if the user sends an image
+  // Check for images in the message
   const imageUrls = attachments
     ?.filter((att) => att.type === "photo")
     .map((photo) => photo.url);
 
-  if (imageUrls?.length > 0) {
-    userMessage += ` ${imageUrls.join(" ")}`;
+  // If images are attached but no text message, treat this as Scenario 2
+  if (imageUrls?.length > 0 && !userMessage.trim()) {
+    try {
+      const apiUrl = `https://vneerapi.onrender.com/barry-ai?prompt=analyze%20image%20${encodeURIComponent(imageUrls.join(" "))}&uid=${senderID}`;
+      const response = await axios.get(apiUrl);
+      const responseMessage = response.data.message || "Sorry, I couldn't analyze the image.";
+
+      return api.sendMessage(responseMessage, threadID, messageID);
+    } catch (error) {
+      console.error("Error communicating with the API:", error.message);
+      return api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
+    }
   }
 
+  // If only text is provided or no images are attached
   if (!userMessage.trim()) {
     return api.sendMessage("I don't accept blank messages or empty attachments!", threadID, messageID);
   }
-
-  console.log("User's Message:", userMessage);
 
   try {
     const apiUrl = `https://vneerapi.onrender.com/barry-ai?prompt=${encodeURIComponent(userMessage)}&uid=${senderID}`;
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
-    // Reply to the user's original message
-    api.sendMessage(
-      { body: responseMessage },
-      threadID,
-      (err, info) => {
-        if (err) return console.error("Error sending message:", err);
-
-        console.log("Bot's Response:", responseMessage);
-
-        global.client.handleReply.push({
-          name: this.config.name,
-          messageID: info.messageID,
-          author: senderID,
-          type: "reply"
-        });
-      },
-      messageID // Reply to the original message
-    );
+    return api.sendMessage(responseMessage, threadID, messageID);
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
-    api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
+    return api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
   }
 };
 
 module.exports.handleReply = async function ({ api, event, handleReply }) {
   const { threadID, messageID, senderID, body, attachments } = event;
-
-  console.log("User Reply from:", senderID, "Message:", body);
 
   let userReply = body || "";
 
@@ -74,6 +64,7 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
     ?.filter((att) => att.type === "photo")
     .map((photo) => photo.url);
 
+  // If the user replies with a message and references images
   if (imageUrls?.length > 0) {
     userReply += ` ${imageUrls.join(" ")}`;
   }
@@ -82,33 +73,14 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
     return api.sendMessage("I don't accept empty replies or attachments!", threadID, messageID);
   }
 
-  console.log("User's Reply with Attachments:", userReply);
-
   try {
     const apiUrl = `https://vneerapi.onrender.com/barry-ai?prompt=${encodeURIComponent(userReply)}&uid=${senderID}`;
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
-    // Reply to the user's message or reply
-    api.sendMessage(
-      { body: responseMessage },
-      threadID,
-      (err, info) => {
-        if (err) return console.error("Error sending message:", err);
-
-        console.log("Bot's Response:", responseMessage);
-
-        global.client.handleReply.push({
-          name: this.config.name,
-          messageID: info.messageID,
-          author: senderID,
-          type: "reply"
-        });
-      },
-      messageID // Reply to the original message
-    );
+    return api.sendMessage(responseMessage, threadID, messageID);
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
-    api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
+    return api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
   }
 };
