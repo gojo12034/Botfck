@@ -18,44 +18,67 @@ module.exports.run = async function ({ api, event, args }) {
 
   let userMessage = args.join(" ");
 
-  // Check for images in the message
+  // Handle if the user sends an image
   const imageUrls = attachments
     ?.filter((att) => att.type === "photo")
     .map((photo) => photo.url);
 
-  // If images are attached but no text message, treat this as Scenario 2
-  if (imageUrls?.length > 0 && !userMessage.trim()) {
-    try {
-      const apiUrl = `https://vneerapi.onrender.com/barry-ai?prompt=analyze%20image%20${encodeURIComponent(imageUrls.join(" "))}&uid=${senderID}`;
-      const response = await axios.get(apiUrl);
-      const responseMessage = response.data.message || "Sorry, I couldn't analyze the image.";
-
-      return api.sendMessage(responseMessage, threadID, messageID);
-    } catch (error) {
-      console.error("Error communicating with the API:", error.message);
-      return api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
-    }
+  if (imageUrls?.length > 0) {
+    userMessage += ` ${imageUrls.join(" ")}`;
   }
 
-  // If only text is provided or no images are attached
   if (!userMessage.trim()) {
     return api.sendMessage("I don't accept blank messages or empty attachments!", threadID, messageID);
   }
+
+  console.log("User's Message:", userMessage);
 
   try {
     const apiUrl = `https://vneerapi.onrender.com/barry-ai?prompt=${encodeURIComponent(userMessage)}&uid=${senderID}`;
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
+    const imgUrls = response.data.img_urls || [];
 
-    return api.sendMessage(responseMessage, threadID, messageID);
+    const messageOptions = { body: responseMessage.replace(/\[.*?\]\(.*?\)/g, "").trim() };
+
+    // Add images as attachments if available
+    if (imgUrls.length > 0) {
+      messageOptions.attachment = await Promise.all(
+        imgUrls.map((url) =>
+          axios
+            .get(url, { responseType: 'stream' })
+            .then((res) => res.data)
+        )
+      );
+    }
+
+    api.sendMessage(
+      messageOptions,
+      threadID,
+      (err, info) => {
+        if (err) return console.error("Error sending message:", err);
+
+        console.log("Bot's Response:", responseMessage);
+
+        global.client.handleReply.push({
+          name: this.config.name,
+          messageID: info.messageID,
+          author: senderID,
+          type: "reply"
+        });
+      },
+      messageID // Reply to the original message
+    );
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
-    return api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
+    api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
   }
 };
 
 module.exports.handleReply = async function ({ api, event, handleReply }) {
   const { threadID, messageID, senderID, body, attachments } = event;
+
+  console.log("User Reply from:", senderID, "Message:", body);
 
   let userReply = body || "";
 
@@ -64,7 +87,6 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
     ?.filter((att) => att.type === "photo")
     .map((photo) => photo.url);
 
-  // If the user replies with a message and references images
   if (imageUrls?.length > 0) {
     userReply += ` ${imageUrls.join(" ")}`;
   }
@@ -73,14 +95,46 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
     return api.sendMessage("I don't accept empty replies or attachments!", threadID, messageID);
   }
 
+  console.log("User's Reply with Attachments:", userReply);
+
   try {
     const apiUrl = `https://vneerapi.onrender.com/barry-ai?prompt=${encodeURIComponent(userReply)}&uid=${senderID}`;
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
+    const imgUrls = response.data.img_urls || [];
 
-    return api.sendMessage(responseMessage, threadID, messageID);
+    const messageOptions = { body: responseMessage.replace(/\[.*?\]\(.*?\)/g, "").trim() };
+
+    // Add images as attachments if available
+    if (imgUrls.length > 0) {
+      messageOptions.attachment = await Promise.all(
+        imgUrls.map((url) =>
+          axios
+            .get(url, { responseType: 'stream' })
+            .then((res) => res.data)
+        )
+      );
+    }
+
+    api.sendMessage(
+      messageOptions,
+      threadID,
+      (err, info) => {
+        if (err) return console.error("Error sending message:", err);
+
+        console.log("Bot's Response:", responseMessage);
+
+        global.client.handleReply.push({
+          name: this.config.name,
+          messageID: info.messageID,
+          author: senderID,
+          type: "reply"
+        });
+      },
+      messageID // Reply to the original message
+    );
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
-    return api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
+    api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
   }
 };
