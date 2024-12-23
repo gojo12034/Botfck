@@ -3,7 +3,7 @@ const express = require("express");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8080;
 const target = "http://de01.uniplex.xyz:5611";
 
 app.use('/', createProxyMiddleware({
