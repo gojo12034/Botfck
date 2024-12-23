@@ -392,20 +392,8 @@ function onBot(retryCount = 0) {
     global.loading.log(`${cra(`[ SUCCESS ]`)} Loaded ${cb(`${global.client.commands.size}`)} commands and ${cb(`${global.client.events.size}`)} events successfully`, "LOADED");
     global.loading.log(`${cra(`[ TIMESTART ]`)} Launch time: ${((Date.now() - global.client.timeStart) / 1000).toFixed()}s`, "LOADED");
     
-    if (fs.existsSync('./threadID.json')) {
-            const data = JSON.parse(fs.readFileSync('./threadID.json', 'utf8'));
-            if (data.threadID) {
-                api.sendMessage("✅ 𝗥𝗲𝘀𝘁𝗮𝗿𝘁𝗲𝗱 𝗦𝘂𝗰𝗰𝗲𝘀𝘀𝗳𝘂𝗹𝗹𝘆\n━━━━━━━━━━━━━━━━━━\nBot has been Fully Restarted!", data.threadID, (err) => {
-                    if (err) {
-                        console.error("Failed to send message:", err);
-                    } else {
-                        console.log("Restart message sent successfully.");
-                        fs.unlinkSync('./threadID.json');
-                        console.log("threadID.json has been deleted.");
-                    }
-                });
-            }
-    }
+    
+    
     const listener = require('./includes/listen')({ api });
     global.handleListen = api.listenMqtt(async (error, event) => {
       if (error) {
