@@ -2,9 +2,9 @@ const axios = require('axios');
 
 module.exports.config = {
   name: "barry",
-  version: "0.0.6",
+  version: "0.0.8",
   hasPermssion: 0,
-  credits: "Biru Aren, updated by AI",
+  credits: "Biru Aren",
   description: "Just a bot",
   commandCategory: "ai",
   usePrefix: false,
@@ -14,13 +14,22 @@ module.exports.config = {
 };
 
 module.exports.run = async function ({ api, event, args }) {
-  const { threadID, messageID, senderID } = event;
+  const { threadID, messageID, senderID, attachments } = event;
 
-  if (!args.length) {
-    return api.sendMessage("I don't accept blank messages!", threadID, messageID);
+  let userMessage = args.join(" ");
+
+  // Handle if the user sends an image
+  const imageUrls = attachments
+    ?.filter((att) => att.type === "photo")
+    .map((photo) => photo.url);
+
+  if (imageUrls?.length > 0) {
+    userMessage += ` ${imageUrls.join(" ")}`;
   }
 
-  const userMessage = args.join(" ");
+  if (!userMessage.trim()) {
+    return api.sendMessage("I don't accept blank messages or empty attachments!", threadID, messageID);
+  }
 
   console.log("User's Message:", userMessage);
 
@@ -29,9 +38,9 @@ module.exports.run = async function ({ api, event, args }) {
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
-    // Send the response and attach it to the original message
+    // Reply to the user's original message
     api.sendMessage(
-      { body: responseMessage, attachment: null },
+      { body: responseMessage },
       threadID,
       (err, info) => {
         if (err) return console.error("Error sending message:", err);
@@ -41,7 +50,7 @@ module.exports.run = async function ({ api, event, args }) {
         global.client.handleReply.push({
           name: this.config.name,
           messageID: info.messageID,
-          author: senderID, // Original sender
+          author: senderID,
           type: "reply"
         });
       },
@@ -54,18 +63,35 @@ module.exports.run = async function ({ api, event, args }) {
 };
 
 module.exports.handleReply = async function ({ api, event, handleReply }) {
-  const { threadID, messageID, senderID, body } = event;
+  const { threadID, messageID, senderID, body, attachments } = event;
 
   console.log("User Reply from:", senderID, "Message:", body);
 
+  let userReply = body || "";
+
+  // Check if the reply contains images
+  const imageUrls = attachments
+    ?.filter((att) => att.type === "photo")
+    .map((photo) => photo.url);
+
+  if (imageUrls?.length > 0) {
+    userReply += ` ${imageUrls.join(" ")}`;
+  }
+
+  if (!userReply.trim()) {
+    return api.sendMessage("I don't accept empty replies or attachments!", threadID, messageID);
+  }
+
+  console.log("User's Reply with Attachments:", userReply);
+
   try {
-    const apiUrl = `https://vneerapi.onrender.com/barry-ai?prompt=${encodeURIComponent(body)}&uid=${senderID}`;
+    const apiUrl = `https://vneerapi.onrender.com/barry-ai?prompt=${encodeURIComponent(userReply)}&uid=${senderID}`;
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
-    // Send the response and attach it to the user's reply
+    // Reply to the user's message or reply
     api.sendMessage(
-      { body: responseMessage, attachment: null },
+      { body: responseMessage },
       threadID,
       (err, info) => {
         if (err) return console.error("Error sending message:", err);
@@ -75,7 +101,7 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
         global.client.handleReply.push({
           name: this.config.name,
           messageID: info.messageID,
-          author: senderID, // Update to replying user's ID
+          author: senderID,
           type: "reply"
         });
       },
