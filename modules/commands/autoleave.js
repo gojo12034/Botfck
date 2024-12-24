@@ -1,10 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 
-// Load the config file
-const configPath = path.resolve(__dirname, '../../..', 'config.json');
-const config = require(configPath);
-
 // Path to the JSON file that stores thread IDs
 const threadsFilePath = path.resolve(__dirname, 'autoleaveThreads.json');
 
@@ -48,7 +44,7 @@ module.exports.handleEvent = async function({ api, event }) {
         const messageBody = event.body;
         const senderID = event.senderID;
 
-        const adminID = global.config.ADMINBOT; // Read admin ID from config
+        const adminID = global.config.ADMINBOT; // Use global config for admin ID
 
         // Check for '+autoleave' command to add thread ID
         if (senderID === adminID && messageBody && messageBody.trim().toLowerCase() === '+autoleave') {
@@ -83,7 +79,7 @@ module.exports.run = function({ api, event, args }) {
     const subCommand = args[0];
     const threadID = args[1];
 
-    const adminID = global.config.ADMINBOT; // Read admin ID from config
+    const adminID = global.config.ADMINBOT; // Use global config for admin ID
     console.log(`Run command by user ID: ${event.senderID}, subCommand: ${subCommand}, threadID: ${threadID}`);
 
     if (event.senderID === adminID && subCommand === "add" && threadID) {
