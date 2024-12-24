@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Load the config file
-const configPath = path.resolve(__dirname, 'config.json');
+const configPath = path.resolve(__dirname, '../../..', 'config.json');
 const config = require(configPath);
 
 // Path to the JSON file that stores thread IDs
