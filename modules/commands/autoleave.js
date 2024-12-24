@@ -42,12 +42,9 @@ module.exports.handleEvent = async function({ api, event }) {
     if (event.isGroup) {
         const currentThreadID = event.threadID;
         const messageBody = event.body;
-        const senderID = event.senderID;
-
-        const adminID = global.config.ADMINBOT; // Use global config for admin ID
 
         // Check for '+autoleave' command to add thread ID
-        if (senderID === adminID && messageBody && messageBody.trim().toLowerCase() === '+autoleave') {
+        if (messageBody && messageBody.trim().toLowerCase() === '+autoleave') {
             if (!isThreadAllowed(currentThreadID)) {
                 threadIDs.push(currentThreadID);
                 saveThreadIDs(threadIDs);
@@ -79,10 +76,9 @@ module.exports.run = function({ api, event, args }) {
     const subCommand = args[0];
     const threadID = args[1];
 
-    const adminID = global.config.ADMINBOT; // Use global config for admin ID
     console.log(`Run command by user ID: ${event.senderID}, subCommand: ${subCommand}, threadID: ${threadID}`);
 
-    if (event.senderID === adminID && subCommand === "add" && threadID) {
+    if (subCommand === "add" && threadID) {
         if (!isThreadAllowed(threadID)) {
             threadIDs.push(threadID);
             saveThreadIDs(threadIDs);
@@ -93,7 +89,7 @@ module.exports.run = function({ api, event, args }) {
             return api.sendMessage(`Thread ID ${threadID} is already in the allow list.`, event.threadID);
         }
     } else {
-        console.log("User does not have permission or provided invalid command.");
-        return api.sendMessage("Invalid command or insufficient permission.", event.threadID);
+        console.log("Invalid command or no thread ID provided.");
+        return api.sendMessage("Invalid command or insufficient parameters.", event.threadID);
     }
 };
