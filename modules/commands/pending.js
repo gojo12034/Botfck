@@ -4,7 +4,7 @@ module.exports.config = {
   credits: "Mirai Team",
   hasPermssion: 2,
   description: "pending [list]",
-usePrefix: false,
+usePrefix: true,
   hide: true,
   commandCategory: "system",
   cooldowns: 5
