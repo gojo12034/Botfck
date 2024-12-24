@@ -171,41 +171,40 @@ try {
  // return;
 }
 
+function restartBot() {
+  console.log(chalk.yellow("Restarting bot..."));
+  setTimeout(() => onBot(), 5000); // Restart after a short delay
+}
+
 function onBot(retryCount = 0) {
-  const MAX_RETRIES = 5; // Limit retries to prevent infinite loops
+  const MAX_RETRIES = 5; // Limit retries
   const RETRY_DELAY = 5000; // 5 seconds delay between retries
 
   let loginData;
-  if (appState === null) {
+  if (!appState) {
     loginData = {
       email: config.email,
-      password: config.password
+      password: config.password,
     };
+  } else {
+    loginData = { appState };
   }
-
-  if (config.useEnvForCredentials) {
-    loginData = {
-      email: process.env[config.email],
-      password: process.env[config.password]
-    };
-  }
-
-  loginData = { appState: appState };
 
   login(loginData, async (err, api) => {
     if (err) {
       console.error(`Login Error: ${err.message}`);
 
-      if (['ETIMEDOUT', 'ENETUNREACH'].includes(err.code)) {
+      if (["ETIMEDOUT", "ENETUNREACH"].includes(err.code)) {
         if (retryCount < MAX_RETRIES) {
           console.log(`Retrying connection... Attempt ${retryCount + 1} of ${MAX_RETRIES}`);
           setTimeout(() => onBot(retryCount + 1), RETRY_DELAY);
         } else {
-          console.error('Max retries reached. Exiting process.');
-          process.exit(1);
+          console.error("Max retries reached. Restarting bot...");
+          restartBot();
         }
       } else {
-        process.exit(1); // Exit for non-retryable errors
+        console.error("Non-retryable error occurred. Restarting bot...");
+        restartBot();
       }
       return;
     }
