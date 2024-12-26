@@ -7,7 +7,7 @@ module.exports.config = {
   credits: "Biru Aren",
   description: "Just a bot",
   commandCategory: "ai",
-  usePrefix: false,
+  usePrefix: true,
   usages: "ask anything",
   cooldowns: 5,
   dependencies: { axios: "" }
