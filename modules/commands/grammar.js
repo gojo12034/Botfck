@@ -2,11 +2,11 @@ const axios = require('axios');
 
 module.exports.config = {
   name: 'grammar',
-  version: '0.0.3',
+  version: '0.0.4',
   hasPermssion: 0,
   credits: 'Biru',
-  description: 'Grammar checker using Vneer API!',
-  commandCategory: 'tools',
+  description: 'Grammar checker',
+  commandCategory: 'tool',
   usePrefix: true,
   usages: 'checks your grammar',
   cooldowns: 5,
@@ -14,13 +14,13 @@ module.exports.config = {
 };
 
 module.exports.run = async function ({ api, event, args, Users, Threads }) {
-  const { threadID, messageID, body, messageReply, type } = event;
+  const { threadID, messageID, messageReply, type } = event;
   let textToCorrect = "";
 
   if (type === "message_reply" && messageReply) {
-    textToCorrect = messageReply.body;
+    textToCorrect = `"${messageReply.body}"`; // Wraps reply text in quotes
   } else if (args[0]) {
-    textToCorrect = args.join(" ");
+    textToCorrect = `"${args.join(" ")}"`; // Wraps arguments in quotes
   }
 
   api.setMessageReaction("✍️", messageID, (err) => {}, true);
