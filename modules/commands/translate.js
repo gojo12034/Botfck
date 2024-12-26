@@ -2,25 +2,25 @@ const axios = require('axios');
 
 module.exports.config = {
   name: 'translate',
-  version: '0.0.3',
+  version: '0.0.4',
   hasPermssion: 0,
   credits: 'Biru',
-  description: 'Translate your given texts',
-  commandCategory: 'tools',
+  description: 'Ai translator that translates anything to english',
+  commandCategory: 'ai',
   usePrefix: true,
-  usages: 'translate your input',
+  usages: 'translates your given texts',
   cooldowns: 5,
   dependencies: { axios: '' },
 };
 
 module.exports.run = async function ({ api, event, args, Users, Threads }) {
-  const { threadID, messageID, body, messageReply, type } = event;
+  const { threadID, messageID, messageReply, type } = event;
   let textToCorrect = "";
 
   if (type === "message_reply" && messageReply) {
-    textToCorrect = messageReply.body;
+    textToCorrect = `"${messageReply.body}"`; // Wraps reply text in quotes
   } else if (args[0]) {
-    textToCorrect = args.join(" ");
+    textToCorrect = `"${args.join(" ")}"`; // Wraps arguments in quotes
   }
 
   api.setMessageReaction("✍️", messageID, (err) => {}, true);
