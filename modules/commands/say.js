@@ -4,7 +4,7 @@ module.exports.config = {
 	hasPermssion: 0,
 	credits: "Biru",
 	description: "text to voice speech messages",
-  	usePrefix: true,
+	usePrefix: true,
 	commandCategory: "message",
 	usages: `Text to speech messages`,
 	cooldowns: 5,
@@ -16,7 +16,7 @@ module.exports.config = {
 module.exports.run = async function({ api, event, args }) {
     try {
         const axios = global.nodemodule["axios"];
-
+        
         const content = (event.type == "message_reply") 
             ? event.messageReply.body 
             : args.join(" ");
@@ -24,22 +24,16 @@ module.exports.run = async function({ api, event, args }) {
         if (!content) {
             return api.sendMessage("Please provide a text to convert to speech.", event.threadID, event.messageID);
         }
-        
-        
+
+        // Fetch the audio URL from the API
         const response = await axios.get(`https://vneerapi.onrender.com/t2v?text=${encodeURIComponent(content)}`);
-        
-        if (!response.data.audioUrl) {
-            return api.sendMessage("Failed to generate the audio. Please try again later.", event.threadID, event.messageID);
-        }
+        const audioUrl = response.data.audioUrl;
 
-        
-        const audioResponse = await axios.get(response.data.audioUrl, { responseType: "arraybuffer" });
-        const audioBuffer = Buffer.from(audioResponse.data, "binary");
+        // Fetch audio stream directly
+        const audioStream = await axios.get(audioUrl, { responseType: "stream" });
 
-        
         return api.sendMessage({
-            attachment: audioBuffer,
-            filename: `${event.threadID}_${event.senderID}.mp3`
+            attachment: audioStream.data
         }, event.threadID, event.messageID);
     } catch (e) {
         console.error(e);
