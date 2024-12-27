@@ -4,7 +4,7 @@ module.exports.config = {
 	hasPermssion: 0,
 	credits: "Biru",
 	description: "text to voice speech messages",
-	usePrefix: true,
+	usePrefix: true, 
 	commandCategory: "message",
 	usages: `Text to speech messages`,
 	cooldowns: 5,
@@ -18,7 +18,7 @@ module.exports.config = {
 module.exports.run = async function({ api, event, args }) {
     try {
         const axios = global.nodemodule["axios"];
-        const { createWriteStream, unlinkSync } = global.nodemodule["fs-extra"];
+        const { createWriteStream, createReadStream, unlinkSync } = global.nodemodule["fs-extra"];
         const { resolve } = global.nodemodule["path"];
         
         const content = (event.type == "message_reply") 
