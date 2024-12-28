@@ -1,16 +1,18 @@
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
 module.exports.config = {
 	name: "say",
 	version: "1.0.0",
 	hasPermssion: 0,
-	credits: "Biru",
+	credits: "Yan Maglinte",
 	description: "text to voice speech messages",
-	usePrefix: true, 
+	usePrefix: true, // SWITCH TO "false" IF YOU WANT TO DISABLE PREFIX
 	commandCategory: "message",
 	usages: `Text to speech messages`,
 	cooldowns: 5,
-	dependencies: { axios: "" }
+	dependencies: { axios: "", fs: "", path: "" }
 };
 
 module.exports.run = async function({ api, event, args }) {
@@ -22,30 +24,47 @@ module.exports.run = async function({ api, event, args }) {
     }
 
     try {
-        // Fetch the audio URL from the API
+        // Ensure the "cache" directory exists
+        const cacheDir = path.resolve(__dirname, "cache");
+        if (!fs.existsSync(cacheDir)) {
+            fs.mkdirSync(cacheDir);
+        }
+
+        // Step 1: Get the audio URL
         const apiUrl = `https://vneerapi.onrender.com/t2v?text=${encodeURIComponent(content)}`;
         const response = await axios.get(apiUrl);
 
-        // Extract the audio URL from the API response
         const audioUrl = response.data.audioUrl;
         if (!audioUrl) {
             return api.sendMessage("Failed to fetch the audio file. Please try again later.", threadID, messageID);
         }
 
-        // Fetch the audio file as a stream
+        // Step 2: Download the audio file locally
+        const filePath = path.resolve(cacheDir, `${threadID}_${messageID}.mp3`);
+        const writer = fs.createWriteStream(filePath);
+
         const audioStream = await axios({
             url: audioUrl,
             method: "GET",
             responseType: "stream"
         });
 
-        // Send the audio file as an attachment
+        audioStream.data.pipe(writer);
+
+        await new Promise((resolve, reject) => {
+            writer.on("finish", resolve);
+            writer.on("error", reject);
+        });
+
+        // Step 3: Send the audio file as an attachment
         api.sendMessage({
-            attachment: audioStream.data
-        }, threadID, messageID);
+            attachment: fs.createReadStream(filePath)
+        }, threadID, () => {
+            fs.unlinkSync(filePath); // Clean up the file after sending
+        }, messageID);
 
     } catch (error) {
-        console.error("Error fetching the audio:", error.message);
+        console.error("Error fetching or sending the audio:", error.message);
         api.sendMessage("Failed to convert text to speech. Please try again later.", threadID, messageID);
     }
 };
