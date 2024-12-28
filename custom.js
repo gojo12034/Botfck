@@ -25,7 +25,7 @@ module.exports = async ({ api }) => {
       },
       {
         cronTime: '0 8 * * *',
-        messages: [`Hello Everyone Time Check 8:00 AM :>`],
+        messages: [`Hello Everyone Time Check 8:00 AM :> \n https://www.facebook.com/CiVi2`],
       },
       {
         cronTime: '0 10 * * *',
@@ -33,7 +33,7 @@ module.exports = async ({ api }) => {
       },
       {
         cronTime: '0 12 * * *',
-        messages: [`Lunchtime reminder: Take a break and eat well!`],
+        messages: [`Lunchtime reminder: Take a break and eat well! \n https://www.facebook.com/CiVi2`],
       },
       {
         cronTime: '0 14 * * *',
@@ -45,7 +45,7 @@ module.exports = async ({ api }) => {
       },
       {
         cronTime: '0 20 * * *',
-        messages: [`Time to wind down. Have a peaceful evening.`],
+        messages: [`Time to wind down. Have a peaceful evening. \n https://www.facebook.com/CiVi2`],
       },
       {
         cronTime: '0 22 * * *',
