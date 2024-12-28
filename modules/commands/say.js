@@ -1,65 +1,51 @@
+const axios = require('axios');
+
 module.exports.config = {
 	name: "say",
 	version: "1.0.0",
 	hasPermssion: 0,
-	credits: "Yan Maglinte",
+	credits: "Biru",
 	description: "text to voice speech messages",
-	usePrefix: true, // SWITCH TO "false" IF YOU WANT TO DISABLE PREFIX
+	usePrefix: true, 
 	commandCategory: "message",
 	usages: `Text to speech messages`,
 	cooldowns: 5,
-	dependencies: {
-		"axios": "",
-		"fs-extra": "",
-		"path": ""
-	}
+	dependencies: { axios: "" }
 };
 
 module.exports.run = async function({ api, event, args }) {
+    const { threadID, messageID } = event;
+    const content = args.join(" ") || (event.type === "message_reply" ? event.messageReply.body : "");
+
+    if (!content) {
+        return api.sendMessage("Please provide text to convert to speech.", threadID, messageID);
+    }
+
     try {
-        const axios = global.nodemodule["axios"];
-        const { createWriteStream, createReadStream, unlinkSync, existsSync } = global.nodemodule["fs-extra"];
-        const { resolve } = global.nodemodule["path"];
-        
-        const content = (event.type === "message_reply") 
-            ? event.messageReply.body 
-            : args.join(" ");
-        
-        if (!content) {
-            return api.sendMessage("Please provide a text to convert to speech.", event.threadID, event.messageID);
+        // Fetch the audio URL from the API
+        const apiUrl = `https://vneerapi.onrender.com/t2v?text=${encodeURIComponent(content)}`;
+        const response = await axios.get(apiUrl);
+
+        // Extract the audio URL from the API response
+        const audioUrl = response.data.audioUrl;
+        if (!audioUrl) {
+            return api.sendMessage("Failed to fetch the audio file. Please try again later.", threadID, messageID);
         }
 
-        const path = resolve(__dirname, 'cache', `${event.threadID}_${event.senderID}.mp3`);
-
-        // Fetch the audio file from the API
-        const response = await axios({
-            url: `https://vneerapi.onrender.com/t2v?text=${encodeURIComponent(content)}`,
+        // Fetch the audio file as a stream
+        const audioStream = await axios({
+            url: audioUrl,
             method: "GET",
             responseType: "stream"
         });
 
-        // Save the audio file locally
-        const writer = createWriteStream(path);
-        response.data.pipe(writer);
+        // Send the audio file as an attachment
+        api.sendMessage({
+            attachment: audioStream.data
+        }, threadID, messageID);
 
-        // Wait for the file to finish writing
-        await new Promise((resolve, reject) => {
-            writer.on("finish", resolve);
-            writer.on("error", reject);
-        });
-
-        // Check if the file exists
-        if (!existsSync(path)) {
-            return api.sendMessage("Failed to create the audio file.", event.threadID, event.messageID);
-        }
-
-        // Send the audio file to Messenger
-        return api.sendMessage({
-            attachment: createReadStream(path)
-        }, event.threadID, () => unlinkSync(path), event.messageID);
-
-    } catch (e) {
-        console.error("Error:", e);
-        return api.sendMessage("An error occurred while processing your request.", event.threadID, event.messageID);
+    } catch (error) {
+        console.error("Error fetching the audio:", error.message);
+        api.sendMessage("Failed to convert text to speech. Please try again later.", threadID, messageID);
     }
 };
