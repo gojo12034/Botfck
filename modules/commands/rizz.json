@@ -4,11 +4,11 @@ module.exports.config = {
   name: "rizz",
   version: "1.0.0",
   hasPermission: 0,
-  credits: "Kshitiz",
+  credits: "Biru",
   description: "use it to impress the girls",
   usePrefix: true,
   commandCategory: "fun",
-  usages: "impress @mention",
+  usages: "rizz @mention",
   cooldowns: 5,
 };
 
@@ -23,13 +23,13 @@ module.exports.run = async function ({ api, event, args }) {
 
     const mentionName = event.mentions[mention[0]].replace('@', '');
 
-    const response = await axios.get('https://vinuxd.vercel.app/api/pickup');
+    const response = await axios.get('https://api.popcat.xyz/pickuplines');
 
-    if (response.status !== 200 || !response.data || !response.data.pickup) {
+    if (response.status !== 200 || !response.data || !response.data.pickupline) {
       throw new Error('Invalid or missing response from pickup line API');
     }
 
-    const pickupLine = response.data.pickup.replace('{name}', mentionName); // Fixed variable name here
+    const pickupLine = response.data.pickupline.replace('{name}', mentionName); // Fixed variable name here
     const message = `${mentionName}, ${pickupLine} 💐`;
 
     const attachment = await api.sendMessage({
