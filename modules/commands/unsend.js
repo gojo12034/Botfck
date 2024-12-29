@@ -1,12 +1,12 @@
 module.exports.config = {
     name: "unsend",
     version: "1.0.1",
-    hasPermssion: 1,
+    hasPermssion: 0,
     credits: "Mirai Team",
     description: "reply [unsend]",
     commandCategory: "system",
 usePrefix: true,
-    usages: "unsend admin only",
+    usages: "unsend",
     cooldowns: 0
 };
 
