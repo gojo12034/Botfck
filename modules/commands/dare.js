@@ -19,7 +19,7 @@ module.exports.run = async function({ api, event }) {
     const message = `Dare: ${question}\n\nTagalog Translation: ${translations.tl}`;
     
     api.sendMessage(message, event.threadID, event.messageID);
-    api.setMessageReaction("✅", event.messageID, (err) => {}, true);
+    
   } catch (error) {
     console.error('Something went wrong:', error);
     api.sendMessage('Try again later mwaa', event.threadID, event.messageID);
