@@ -34,7 +34,7 @@ module.exports.run = async function ({ api, event, args }) {
   console.log("User's Message:", userMessage);
 
   try {
-    const apiUrl = `https://vneerapi.onrender.com/barry-ai?prompt=${encodeURIComponent(userMessage)}&uid=${senderID}`;
+    const apiUrl = `http://de1.bot-hosting.net:20251/barry-ai?prompt=${encodeURIComponent(userMessage)}&uid=${senderID}`;
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
     const imgUrls = response.data.img_urls || [];
@@ -98,7 +98,7 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
   console.log("User's Reply with Attachments:", userReply);
 
   try {
-    const apiUrl = `https://vneerapi.onrender.com/barry-ai?prompt=${encodeURIComponent(userReply)}&uid=${senderID}`;
+    const apiUrl = `http://de1.bot-hosting.net:20251/barry-ai?prompt=${encodeURIComponent(userReply)}&uid=${senderID}`;
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
     const imgUrls = response.data.img_urls || [];
