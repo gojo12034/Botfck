@@ -4,6 +4,7 @@ module.exports.config = {
   hasPermssion: 0,
   credits: "D-Jukie (Xuyên get)",
   description: "Pairing",
+  usePrefix: true,
   commandCategory: "Love",
   usages: "pair",
   cooldowns: 15
