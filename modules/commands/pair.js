@@ -12,26 +12,66 @@ module.exports.config = {
 
 module.exports.run = async function ({ api, event, Threads, Users }) {
   try {
-    // Get the list of participants
-    var { participantIDs } = (await Threads.getData(event.threadID)).threadInfo;
-    var tle = Math.floor(Math.random() * 101); // Random compatibility percentage
-    var namee = (await Users.getData(event.senderID)).name; // Get sender's name
+    // Fetch thread participants
+    const threadData = await Threads.getData(event.threadID);
+    if (!threadData || !threadData.threadInfo || !threadData.threadInfo.participantIDs) {
+      return api.sendMessage(
+        "Unable to fetch participant data. Please try again later.",
+        event.threadID,
+        event.messageID
+      );
+    }
+
+    const { participantIDs } = threadData.threadInfo;
     const botID = api.getCurrentUserID();
     const listUserID = participantIDs.filter(
       (ID) => ID != botID && ID != event.senderID
     );
 
-    // Randomly pick another participant
-    var id = listUserID[Math.floor(Math.random() * listUserID.length)];
-    var name = (await Users.getData(id)).name;
+    // Ensure there are valid participants
+    if (listUserID.length === 0) {
+      return api.sendMessage(
+        "No other participants available for pairing in this thread.",
+        event.threadID,
+        event.messageID
+      );
+    }
 
-    // Create and send message
-    var msg = `🥰 Successful pairing!\n💌 Wish you two hundred years of happiness!\n💕 Compatibility Ratio: ${tle}%\n${namee} ❤️ ${name}`;
+    // Fetch user names
+    const senderData = await Users.getData(event.senderID);
+    if (!senderData || !senderData.name) {
+      return api.sendMessage(
+        "Unable to fetch your name. Please try again later.",
+        event.threadID,
+        event.messageID
+      );
+    }
+
+    const namee = senderData.name;
+
+    // Randomly pick a participant
+    const randomID = listUserID[Math.floor(Math.random() * listUserID.length)];
+    const randomUserData = await Users.getData(randomID);
+    if (!randomUserData || !randomUserData.name) {
+      return api.sendMessage(
+        "Unable to fetch the name of your pair. Please try again later.",
+        event.threadID,
+        event.messageID
+      );
+    }
+
+    const name = randomUserData.name;
+
+    // Generate compatibility percentage
+    const tle = Math.floor(Math.random() * 101);
+
+    // Send pairing result
+    const msg = `🥰 Successful pairing!\n💌 Wish you two hundred years of happiness!\n💕 Compatibility Ratio: ${tle}%\n${namee} ❤️ ${name}`;
     return api.sendMessage(msg, event.threadID, event.messageID);
   } catch (error) {
-    console.error("Error:", error); // Log the full error for debugging
+    console.error("Error in pairing command:", error); // Log the full error for debugging
     return api.sendMessage(
-      "An error occurred while pairing. Please try again later.",
+      "An unexpected error occurred while processing the pairing command. Please try again later.",
       event.threadID,
       event.messageID
     );
