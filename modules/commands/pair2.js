@@ -1,16 +1,16 @@
 module.exports.config = {
   name: "pair2",
-  version: "1.0.0",
+  version: "0.2",
   hasPermssion: 0,
-  credits: "D-Jukie (Modified by biru)",
-  description: "Pairing",
   usePrefix: true,
+  credits: "D-Jukie (Modified)",
+  description: "Pairing",
   commandCategory: "Love",
   usages: "pair",
-  cooldowns: 15
+  cooldowns: 15,
 };
 
-module.exports.run = async function({ api, event, Threads, Users }) {
+module.exports.run = async function ({ api, event, Threads, Users }) {
   try {
     // Get the list of participants
     var { participantIDs } = (await Threads.getData(event.threadID)).threadInfo;
@@ -25,19 +25,15 @@ module.exports.run = async function({ api, event, Threads, Users }) {
     var id = listUserID[Math.floor(Math.random() * listUserID.length)];
     var name = (await Users.getData(id)).name;
 
-    // Add tags for mentions
-    var arraytag = [];
-    arraytag.push({ id: event.senderID, tag: namee });
-    arraytag.push({ id: id, tag: name });
-
     // Create and send message
-    var msg = {
-      body: `🥰 Successful pairing!\n💌 Wish you two hundred years of happiness!\n💕 Compatibility Ratio: ${tle}%\n@${namee} ❤️ @${name}`,
-      mentions: arraytag
-    };
+    var msg = `🥰 Successful pairing!\n💌 Wish you two hundred years of happiness!\n💕 Compatibility Ratio: ${tle}%\n${namee} ❤️ ${name}`;
     return api.sendMessage(msg, event.threadID, event.messageID);
   } catch (error) {
-    console.error("Error:", error);
-    api.sendMessage("An error occurred while pairing.", event.threadID);
+    console.error("Error:", error); // Log the full error for debugging
+    return api.sendMessage(
+      "An error occurred while pairing. Please try again later.",
+      event.threadID,
+      event.messageID
+    );
   }
 };
