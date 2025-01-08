@@ -3,7 +3,12 @@ const axios = require('axios');
 
 const fetchBibleVerse = async () => {
   try {
-    const response = await axios.get('https://labs.bible.org/api/?passage=random&type=json');
+    const response = await axios.get('https://labs.bible.org/api/?passage=random&type=json', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; Bot/1.0)', // Prevent 403 errors by mimicking a browser request
+      },
+    });
+
     const { bookname, chapter, verse, text } = response.data[0];
 
     // Get the current date in Asia/Manila timezone
@@ -15,7 +20,7 @@ const fetchBibleVerse = async () => {
     return `📖 Daily Bible Verse:\n\n"${text}"\n\n📍 ${bookname} ${chapter}:${verse}\n📅 Date: ${currentDate}`;
   } catch (error) {
     console.error('Error fetching Bible verse:', error.message);
-    return '🙏 Unable to fetch Bible verse at the moment.';
+    return '🙏 No Bible verse at the moment.';
   }
 };
 
@@ -84,7 +89,6 @@ module.exports = ({ api }) => {
           }
         }
         console.log('Start rebooting the system!');
-        process.exit(1);
       } catch (err) {
         console.error('Error during auto-restart:', err);
       }
