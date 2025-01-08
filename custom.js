@@ -1,6 +1,25 @@
 const cron = require('node-cron');
+const axios = require('axios');
 
-module.exports = async ({ api }) => {
+const fetchBibleVerse = async () => {
+  try {
+    const response = await axios.get('https://labs.bible.org/api/?passage=random&type=json');
+    const { bookname, chapter, verse, text } = response.data[0];
+
+    // Get the current date in Asia/Manila timezone
+    const currentDate = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Manila',
+      dateStyle: 'full',
+    }).format(new Date());
+
+    return `📖 Daily Bible Verse:\n\n"${text}"\n\n📍 ${bookname} ${chapter}:${verse}\n📅 Date: ${currentDate}`;
+  } catch (error) {
+    console.error('Error fetching Bible verse:', error.message);
+    return '🙏 Unable to fetch Bible verse at the moment.';
+  }
+};
+
+module.exports = ({ api }) => {
   const config = {
     autoRestart: {
       status: true,
@@ -10,76 +29,65 @@ module.exports = async ({ api }) => {
     greetings: [
       {
         cronTime: '0 5 * * *',
-        messages: [`Good morning! Have a great day ahead!`],
+        messages: ['Good morning! Have a great day ahead!'],
       },
       {
         cronTime: '0 8 * * *',
-        messages: [`Hello Everyone Time Check 8:00 AM :> \n https://www.facebook.com/CiVi2`],
+        messages: ['Hello Everyone Time Check 8:00 AM :> \n https://www.facebook.com/CiVi2'],
       },
       {
-        cronTime: '0 10 * * *',
-        messages: [`Hello everyone! How's your day going?`],
+        cronTime: '0 7 * * *',
+        messages: async () => `Good morning! Here’s some inspiration for today:\n\n${await fetchBibleVerse()}`,
       },
       {
-        cronTime: '0 12 * * *',
-        messages: [`Lunchtime reminder: Take a break and eat well! \n https://www.facebook.com/CiVi2`],
+        cronTime: '0 19 * * *',
+        messages: async () => `Good evening! Reflect on this verse:\n\n${await fetchBibleVerse()}`,
       },
-      {
-        cronTime: '0 14 * * *',
-        messages: [`Reminder: Don't forget your tasks for today!`],
-      },
-      {
-        cronTime: '0 18 * * *',
-        messages: [`Good evening! Relax and enjoy your evening.`],
-      },
-      {
-        cronTime: '0 20 * * *',
-        messages: [`Time to wind down. Have a peaceful evening. \n https://www.facebook.com/CiVi2`],
-      },
-      {
-        cronTime: '0 22 * * *',
-        messages: [`Good night! Have a restful sleep.`],
-      },
-    ]
+    ],
   };
 
   config.greetings.forEach((greeting) => {
-    cron.schedule(greeting.cronTime, () => {
-      const message = greeting.messages[0];
-      api.getThreadList(20, null, ['INBOX']).then((list) => {
-        list.forEach((thread) => {
+    cron.schedule(greeting.cronTime, async () => {
+      try {
+        const message =
+          typeof greeting.messages === 'function'
+            ? await greeting.messages()
+            : greeting.messages[0];
+
+        const threads = await api.getThreadList(20, null, ['INBOX']);
+        threads.forEach((thread) => {
           if (thread.isGroup) {
-            api.sendMessage(message, thread.threadID).catch((error) => {
-              console.log(`Error sending message: ${error}`, 'AutoGreet');
+            api.sendMessage(message, thread.threadID).catch((err) => {
+              console.error('Error sending message:', err);
             });
           }
         });
-      }).catch((error) => {
-        console.log(`Error getting thread list: ${error}`, 'AutoGreet');
-      });
+      } catch (err) {
+        console.error('Error scheduling greeting:', err);
+      }
     }, {
       scheduled: true,
-      timezone: "Asia/Manila"
+      timezone: 'Asia/Manila',
     });
   });
 
   if (config.autoRestart.status) {
-    cron.schedule(`*/${config.autoRestart.time} * * * *`, () => {
-      api.getThreadList(20, null, ['INBOX']).then((list) => {
-        list.forEach((thread) => {
+    cron.schedule(`*/${config.autoRestart.time} * * * *`, async () => {
+      try {
+        const threads = await api.getThreadList(20, null, ['INBOX']);
+        for (const thread of threads) {
           if (thread.isGroup) {
-            api.sendMessage("🔃 𝗥𝗲𝘀𝘁𝗮𝗿𝘁𝗶𝗻𝗴 𝗽𝗿𝗼𝗰𝗲𝘀𝘀\n━━━━━━━━━━━━━━━━━━\nBot is restarting...", thread.threadID).then(() => {
-              console.log(`Restart message sent to thread`, 'Auto Restart');
-            }).catch((error) => {
-              console.log(`Error sending restart message to thread ${error}`, 'Auto Restart');
-            });
+            await api.sendMessage(
+              '🔃 𝗥𝗲𝘀𝘁𝗮𝗿𝘁𝗶𝗻𝗴 𝗽𝗿𝗼𝗰𝗲𝘀𝘀\n━━━━━━━━━━━━━━━━━━\nBot is restarting...',
+              thread.threadID
+            );
           }
-        });
-        console.log('Start rebooting the system!', 'Auto Restart');
+        }
+        console.log('Start rebooting the system!');
         process.exit(1);
-      }).catch((error) => {
-        console.log(`Error getting thread list for restart: ${error}`, 'Auto Restart');
-      });
+      } catch (err) {
+        console.error('Error during auto-restart:', err);
+      }
     });
   }
 };
