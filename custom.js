@@ -3,15 +3,10 @@ const axios = require('axios');
 
 const fetchBibleVerse = async () => {
   try {
-    const response = await axios.get('https://labs.bible.org/api/?passage=random&type=json', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Bot/1.0)', // Prevent 403 errors by mimicking a browser request
-      },
-    });
-
+    const response = await axios.get('https://labs.bible.org/api/?passage=random&type=json');
     const { bookname, chapter, verse, text } = response.data[0];
 
-    // Get the current date in Asia/Manila timezone
+    // Format the date for Asia/Manila timezone
     const currentDate = new Intl.DateTimeFormat('en-US', {
       timeZone: 'Asia/Manila',
       dateStyle: 'full',
@@ -20,7 +15,12 @@ const fetchBibleVerse = async () => {
     return `📖 Daily Bible Verse:\n\n"${text}"\n\n📍 ${bookname} ${chapter}:${verse}\n📅 Date: ${currentDate}`;
   } catch (error) {
     console.error('Error fetching Bible verse:', error.message);
-    return '🙏 No Bible verse at the moment.';
+
+    // Fallback Bible verse
+    return `📖 Daily Bible Verse:\n\n"For I know the plans I have for you, declares the Lord, plans for welfare and not for evil, to give you a future and a hope."\n\n📍 Jeremiah 29:11\n📅 Date: ${new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Manila',
+      dateStyle: 'full',
+    }).format(new Date())}`;
   }
 };
 
@@ -28,7 +28,7 @@ module.exports = ({ api }) => {
   const config = {
     autoRestart: {
       status: true,
-      time: 100,
+      time: 100, // Interval in minutes
       note: 'To avoid problems, enable periodic bot restarts',
     },
     greetings: [
@@ -77,20 +77,28 @@ module.exports = ({ api }) => {
   });
 
   if (config.autoRestart.status) {
-    cron.schedule(`*/${config.autoRestart.time} * * * *`, async () => {
-      try {
-        const threads = await api.getThreadList(20, null, ['INBOX']);
-        for (const thread of threads) {
-          if (thread.isGroup) {
-            await api.sendMessage(
-              '🔃 𝗥𝗲𝘀𝘁𝗮𝗿𝘁𝗶𝗻𝗴 𝗽𝗿𝗼𝗰𝗲𝘀𝘀\n━━━━━━━━━━━━━━━━━━\nBot is restarting...',
-              thread.threadID
-            );
+    // Schedule the restart function for every 100 minutes using custom logic
+    cron.schedule(`0 */1 * * *`, async () => {
+      const currentTime = new Date();
+      const minutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+
+      // Check if it's the correct 100-minute interval
+      if (minutes % config.autoRestart.time === 0) {
+        try {
+          const threads = await api.getThreadList(20, null, ['INBOX']);
+          for (const thread of threads) {
+            if (thread.isGroup) {
+              await api.sendMessage(
+                '🔃 𝗥𝗲𝘀𝘁𝗮𝗿𝘁𝗶𝗻𝗴 𝗽𝗿𝗼𝗰𝗲𝘀𝘀\n━━━━━━━━━━━━━━━━━━\nBot is restarting...',
+                thread.threadID
+              );
+            }
           }
+          console.log('Start rebooting the system!');
+          process.exit(1);
+        } catch (err) {
+          console.error('Error during auto-restart:', err);
         }
-        console.log('Start rebooting the system!');
-      } catch (err) {
-        console.error('Error during auto-restart:', err);
       }
     });
   }
