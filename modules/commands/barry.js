@@ -2,9 +2,9 @@ const axios = require('axios');
 
 module.exports.config = {
   name: "barry",
-  version: "0.0.9",
+  version: "0.1.0",
   hasPermssion: 0,
-  credits: "Biru Aren",
+  credits: "Biru Aren, updated by AI",
   description: "Just a bot",
   commandCategory: "ai",
   usePrefix: false,
@@ -28,7 +28,7 @@ module.exports.run = async function ({ api, event, args }) {
   }
 
   if (!userMessage.trim()) {
-    return api.sendMessage("I don't accept blank messages or empty attachments!", threadID, messageID);
+    return api.sendMessage("I don't accept blank messages!", threadID, messageID);
   }
 
   console.log("User's Message:", userMessage);
@@ -136,5 +136,50 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
     api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
+  }
+};
+
+module.exports.handleEvent = async function ({ api, event }) {
+  const { threadID, messageID, senderID } = event;
+
+  // Handle message_reply with attachments
+  if (event.type === "message_reply" && event.messageReply.attachments && event.messageReply.attachments.length > 0) {
+    const attachments = event.messageReply.attachments.map((att) => att.url);
+    const userMessage = attachments.join(" ");
+
+    console.log("Message Reply with Attachments:", userMessage);
+
+    try {
+      const apiUrl = `https://vneerapi.onrender.com/barry-ai?prompt=${encodeURIComponent(userMessage)}&uid=${senderID}`;
+      const response = await axios.get(apiUrl);
+      const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
+      const imgUrls = response.data.img_urls || [];
+
+      const messageOptions = { body: responseMessage.replace(/\[.*?\]\(.*?\)/g, "").trim() };
+
+      // Add images as attachments if available
+      if (imgUrls.length > 0) {
+        messageOptions.attachment = await Promise.all(
+          imgUrls.map((url) =>
+            axios
+              .get(url, { responseType: 'stream' })
+              .then((res) => res.data)
+          )
+        );
+      }
+
+      api.sendMessage(
+        messageOptions,
+        threadID,
+        (err, info) => {
+          if (err) return console.error("Error sending message:", err);
+          console.log("Bot's Response:", responseMessage);
+        },
+        messageID
+      );
+    } catch (error) {
+      console.error("Error processing message reply:", error.message);
+      api.sendMessage("I'm busy right now, try again later.", threadID, messageID);
+    }
   }
 };
