@@ -3,8 +3,8 @@ const axios = require('axios');
 
 const fetchBibleVerse = async () => {
   try {
-    const response = await axios.get('https://labs.bible.org/api/?passage=random&type=json');
-    const { bookname, chapter, verse, text } = response.data[0];
+    const response = await axios.get('https://bible-api.com/data/web/random/MAT,MRK,LUK,JHN');
+    const { book, chapter, verse, text } = response.data.random_verse;
 
     // Format the date for Asia/Manila timezone
     const currentDate = new Intl.DateTimeFormat('en-US', {
@@ -12,7 +12,7 @@ const fetchBibleVerse = async () => {
       dateStyle: 'full',
     }).format(new Date());
 
-    return `📖 Daily Bible Verse:\n\n"${text}"\n\n📍 ${bookname} ${chapter}:${verse}\n📅 Date: ${currentDate}`;
+    return `📖 Daily Bible Verse:\n\n"${text}"\n\n📍 ${book} ${chapter}:${verse}\n📅 Date: ${currentDate}`;
   } catch (error) {
     console.error('Error fetching Bible verse:', error.message);
 
@@ -85,15 +85,6 @@ module.exports = ({ api }) => {
       // Check if it's the correct 100-minute interval
       if (minutes % config.autoRestart.time === 0) {
         try {
-          const threads = await api.getThreadList(20, null, ['INBOX']);
-          for (const thread of threads) {
-            if (thread.isGroup) {
-              await api.sendMessage(
-                '🔃 𝗥𝗲𝘀𝘁𝗮𝗿𝘁𝗶𝗻𝗴 𝗽𝗿𝗼𝗰𝗲𝘀𝘀\n━━━━━━━━━━━━━━━━━━\nBot is restarting...',
-                thread.threadID
-              );
-            }
-          }
           console.log('Start rebooting the system!');
           process.exit(1);
         } catch (err) {
