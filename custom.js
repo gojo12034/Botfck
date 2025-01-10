@@ -52,16 +52,28 @@ module.exports = ({ api }) => {
         messages: ['Good morning! Have a great day ahead!'],
       },
       {
-        cronTime: '0 8 * * *',
-        messages: ['Hello Everyone Time Check 8:00 AM :> \n https://www.facebook.com/CiVi2'],
-      },
-      {
         cronTime: '0 7 * * *',
         messages: async () => `Good morning! Here’s some inspiration for today:\n\n${await fetchBibleVerse()}`,
       },
       {
+        cronTime: '0 8 * * *',
+        messages: ['Hello Everyone Time Check 8:00 AM :> \n https://www.facebook.com/CiVi2'],
+      },
+      {
+        cronTime: '0 12 * * *',
+        messages: ['Good afternoon! Don’t forget to take a break and enjoy your lunch!'],
+      },
+      {
+        cronTime: '0 14 * * *',
+        messages: ['It’s 2 PM! Time to focus on your daily tasks. Keep pushing forward!'],
+      },
+      {
         cronTime: '0 19 * * *',
         messages: async () => `Good evening! Reflect on this verse:\n\n${await fetchBibleVerse()}`,
+      },
+      {
+        cronTime: '0 22 * * *',
+        messages: ['It’s 10 PM. Time to wind down and get ready for bed. Have a peaceful night!'],
       },
     ],
   };
