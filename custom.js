@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const axios = require('axios');
 
+// Function to fetch a Bible verse
 const fetchBibleVerse = async () => {
   try {
     const response = await axios.get('https://bible-api.com/data/web/random/MAT,MRK,LUK,JHN');
@@ -21,6 +22,20 @@ const fetchBibleVerse = async () => {
       timeZone: 'Asia/Manila',
       dateStyle: 'full',
     }).format(new Date())}`;
+  }
+};
+
+// Function to send messages with delays between each thread
+const sendMessageWithDelay = async (api, message, threads, delay = 2000) => {
+  for (const thread of threads) {
+    if (thread.isGroup) {
+      try {
+        await api.sendMessage(message, thread.threadID);
+        await new Promise((resolve) => setTimeout(resolve, delay)); // Wait before sending to the next thread
+      } catch (err) {
+        console.error(`Error sending message to thread ${thread.threadID}:`, err);
+      }
+    }
   }
 };
 
@@ -51,29 +66,28 @@ module.exports = ({ api }) => {
     ],
   };
 
+  // Schedule greetings
   config.greetings.forEach((greeting) => {
-    cron.schedule(greeting.cronTime, async () => {
-      try {
-        const message =
-          typeof greeting.messages === 'function'
-            ? await greeting.messages()
-            : greeting.messages[0];
+    cron.schedule(
+      greeting.cronTime,
+      async () => {
+        try {
+          const message =
+            typeof greeting.messages === 'function'
+              ? await greeting.messages()
+              : greeting.messages[0];
 
-        const threads = await api.getThreadList(20, null, ['INBOX']);
-        threads.forEach((thread) => {
-          if (thread.isGroup) {
-            api.sendMessage(message, thread.threadID).catch((err) => {
-              console.error('Error sending message:', err);
-            });
-          }
-        });
-      } catch (err) {
-        console.error('Error scheduling greeting:', err);
+          const threads = await api.getThreadList(20, null, ['INBOX']);
+          await sendMessageWithDelay(api, message, threads, 2000); // Add a 2-second delay between messages
+        } catch (err) {
+          console.error('Error scheduling greeting:', err);
+        }
+      },
+      {
+        scheduled: true,
+        timezone: 'Asia/Manila',
       }
-    }, {
-      scheduled: true,
-      timezone: 'Asia/Manila',
-    });
+    );
   });
 
   if (config.autoRestart.status) {
