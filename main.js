@@ -401,24 +401,24 @@ global.handleListen = api.listenMqtt(async (error, event) => {
 
   const ping = () => {
     if (Date.now() - lastEventTime >= idleTime) {
-      console.log("Auto-ping: No activity detected, keeping connection alive...");
-      api.listenMqtt(() => {}); // Trigger a no-op action to maintain the connection
+      console.log("Auto-ping: Keeping connection alive...");
+      api.getThreadList(0, 1, 'inbox', () => {}); // A lightweight no-op action to keep the connection alive
       lastEventTime = Date.now();
     }
   };
 
-  setInterval(ping, idleTime);
+  const interval = setInterval(ping, idleTime);
 
   // Handle events
   lastEventTime = Date.now(); // Update last event time on every new event
-  return listener(event);
+  listener(event);
+
+  // Clear the interval if the process is shutting down
+  process.on('exit', () => clearInterval(interval));
 });
 });
 }
 
-
-
-        
 
 // ___END OF EVENT & API USAGE___ //
 
