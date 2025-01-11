@@ -380,37 +380,35 @@ function onBot() {
     global.loading.log(`${cra(`[ TIMESTART ]`)} Launch time: ${((Date.now() - global.client.timeStart) / 1000).toFixed()}s`, "LOADED");
     
     
-    
     const listener = require('./includes/listen')({ api });
-
-function startListening() {
-  global.handleListen = api.listenMqtt(async (error, event) => {
-    if (error) {
-      if (error.error === 'Not logged in.') {
-        logger.log("Your bot account has been logged out!", 'LOGIN');
-        return process.exit(1); // Exit the process to let the hosting environment restart the bot
-      }
-      if (error.error === 'Not logged in') {
-        logger.log("Your account has been checkpointed. Please confirm your account and log in again!", 'CHECKPOINT');
-        return process.exit(0);
-      }
-      console.error("Error in listenMqtt:", error.message || error);
-      logger.log("Restarting listenMqtt due to an error.", 'ERROR');
-      
-      // Restart the listener after a short delay
-      setTimeout(startListening, 5000);
-      return;
+    global.handleListen = api.listenMqtt(async (error, event) => {
+  if (error) {
+    if (error.error === 'Not logged in.') {
+      logger.log("Your bot account has been logged out!", 'LOGIN');
+      return restartBot();
     }
-
-    try {
-      await listener(event); // Process the incoming event
-    } catch (eventError) {
-      console.error("Error processing event:", eventError.message || eventError);
+    if (error.error === 'Not logged in') {
+      logger.log("Your account has been checkpointed, please confirm your account and log in again!", 'CHECKPOINT');
+      return restartBot();
     }
-  });
-}
+    console.log(error);
+    return restartBot(); // Restart on any unexpected error
+  }
 
-startListening();
+  // Auto-ping mechanism
+  setInterval(() => {
+    api.getThreadList(5, null, ["INBOX"], (err) => {
+      if (err) {
+        console.log("Ping failed:", err.message);
+        return restartBot();
+      }
+      console.log("Ping successful: Keeping connection alive.");
+    });
+  }, 60000); // Ping every minute
+
+  return listener(event);
+});
+
         
 
 // ___END OF EVENT & API USAGE___ //
