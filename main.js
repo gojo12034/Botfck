@@ -396,7 +396,7 @@ global.handleListen = api.listenMqtt(async (error, event) => {
   }
 
   // Auto-ping mechanism
-  const idleTime = 300000; // 5 minutes
+  const idleTime = 600000; // 10 minutes
   let lastEventTime = Date.now();
 
   const ping = () => {
