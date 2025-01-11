@@ -382,21 +382,36 @@ function onBot() {
     
     
     const listener = require('./includes/listen')({ api });
-    global.handleListen = api.listenMqtt(async (error, event) => {
-      if (error) {
-        if (error.error === 'Not logged in.') {
-          logger.log("Your bot account has been logged out!", 'LOGIN');
-          return process.exit(1);
-        }
-        if (error.error === 'Not logged in') {
-          logger.log("Your account has been checkpointed, please confirm your account and log in again!", 'CHECKPOINT');
-          return process.exit(0);
-        }
-        console.log(error);
+
+function startListening() {
+  global.handleListen = api.listenMqtt(async (error, event) => {
+    if (error) {
+      if (error.error === 'Not logged in.') {
+        logger.log("Your bot account has been logged out!", 'LOGIN');
+        return process.exit(1); // Exit the process to let the hosting environment restart the bot
+      }
+      if (error.error === 'Not logged in') {
+        logger.log("Your account has been checkpointed. Please confirm your account and log in again!", 'CHECKPOINT');
         return process.exit(0);
       }
-      return listener(event);
-    });
+      console.error("Error in listenMqtt:", error.message || error);
+      logger.log("Restarting listenMqtt due to an error.", 'ERROR');
+      
+      // Restart the listener after a short delay
+      setTimeout(startListening, 5000);
+      return;
+    }
+
+    try {
+      await listener(event); // Process the incoming event
+    } catch (eventError) {
+      console.error("Error processing event:", eventError.message || eventError);
+    }
+  });
+}
+
+startListening();
+
   });
 }
 
