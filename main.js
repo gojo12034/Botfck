@@ -381,32 +381,8 @@ function onBot() {
     
     
     const listener = require('./includes/listen')({ api });
-
-// Auto-Ping Mechanism
-let pingInterval = null;
-const PING_INTERVAL_TIME = 300000; // 30 seconds (adjust as needed)
-
-function startPing(api) {
-  if (pingInterval) clearInterval(pingInterval);
-  pingInterval = setInterval(() => {
-    api.getThreadInfo("8920278421337078", (err, info) => {
-      if (err) {
-        console.error("Ping failed: ", err.message);
-      } else {
-        console.log("Ping successful.");
-      }
-    });
-  }, PING_INTERVAL_TIME);
-}
-
-function stopPing() {
-  if (pingInterval) clearInterval(pingInterval);
-  pingInterval = null;
-}
-
 global.handleListen = api.listenMqtt(async (error, event) => {
   if (error) {
-    stopPing();
     if (error.error === 'Not logged in.') {
       logger.log("Your bot account has been logged out!", 'LOGIN');
       return process.exit(1);
@@ -419,14 +395,27 @@ global.handleListen = api.listenMqtt(async (error, event) => {
     return process.exit(0);
   }
 
-  // Restart the ping mechanism on new events
-  startPing(api);
+  // Auto-ping mechanism
+  const idleTime = 300000; // 5 minutes
+  let lastEventTime = Date.now();
 
+  const ping = () => {
+    if (Date.now() - lastEventTime >= idleTime) {
+      console.log("Auto-ping: No activity detected, keeping connection alive...");
+      api.listenMqtt(() => {}); // Trigger a no-op action to maintain the connection
+      lastEventTime = Date.now();
+    }
+  };
+
+  setInterval(ping, idleTime);
+
+  // Handle events
+  lastEventTime = Date.now(); // Update last event time on every new event
   return listener(event);
 });
+});
+}
 
-// Start the ping mechanism initially
-startPing(api);
 
 
         
