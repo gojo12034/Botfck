@@ -402,7 +402,13 @@ global.handleListen = api.listenMqtt(async (error, event) => {
   const ping = () => {
     if (Date.now() - lastEventTime >= idleTime) {
       console.log("Auto-ping: Keeping connection alive...");
-      api.getThreadList(0, 1, 'inbox', () => {}); // A lightweight no-op action to keep the connection alive
+      api.getCurrentUserID((err) => {
+        if (err) {
+          console.error("Auto-ping failed:", err);
+        } else {
+          console.log("Auto-ping successful");
+        }
+      });
       lastEventTime = Date.now();
     }
   };
@@ -418,6 +424,7 @@ global.handleListen = api.listenMqtt(async (error, event) => {
 });
 });
 }
+
 
 
 // ___END OF EVENT & API USAGE___ //
