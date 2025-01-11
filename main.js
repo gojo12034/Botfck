@@ -412,9 +412,7 @@ function startListening() {
 
 startListening();
 
-  });
-}
-
+  
 // ___END OF EVENT & API USAGE___ //
 
 (async () => {
