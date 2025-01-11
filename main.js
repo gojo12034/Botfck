@@ -381,33 +381,53 @@ function onBot() {
     
     
     const listener = require('./includes/listen')({ api });
-    global.handleListen = api.listenMqtt(async (error, event) => {
+
+// Auto-Ping Mechanism
+let pingInterval = null;
+const PING_INTERVAL_TIME = 300000; // 30 seconds (adjust as needed)
+
+function startPing(api) {
+  if (pingInterval) clearInterval(pingInterval);
+  pingInterval = setInterval(() => {
+    api.getThreadInfo("8920278421337078", (err, info) => {
+      if (err) {
+        console.error("Ping failed: ", err.message);
+      } else {
+        console.log("Ping successful.");
+      }
+    });
+  }, PING_INTERVAL_TIME);
+}
+
+function stopPing() {
+  if (pingInterval) clearInterval(pingInterval);
+  pingInterval = null;
+}
+
+global.handleListen = api.listenMqtt(async (error, event) => {
   if (error) {
+    stopPing();
     if (error.error === 'Not logged in.') {
       logger.log("Your bot account has been logged out!", 'LOGIN');
-      return restartBot();
+      return process.exit(1);
     }
     if (error.error === 'Not logged in') {
       logger.log("Your account has been checkpointed, please confirm your account and log in again!", 'CHECKPOINT');
-      return restartBot();
+      return process.exit(0);
     }
     console.log(error);
-    return restartBot(); // Restart on any unexpected error
+    return process.exit(0);
   }
 
-  // Auto-ping mechanism
-  setInterval(() => {
-    api.getThreadList(5, null, ["INBOX"], (err) => {
-      if (err) {
-        console.log("Ping failed:", err.message);
-        return restartBot();
-      }
-      console.log("Ping successful: Keeping connection alive.");
-    });
-  }, 60000); // Ping every minute
+  // Restart the ping mechanism on new events
+  startPing(api);
 
   return listener(event);
 });
+
+// Start the ping mechanism initially
+startPing(api);
+
 
         
 
