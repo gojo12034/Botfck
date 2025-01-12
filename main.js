@@ -380,52 +380,25 @@ function onBot() {
     global.loading.log(`${cra(`[ TIMESTART ]`)} Launch time: ${((Date.now() - global.client.timeStart) / 1000).toFixed()}s`, "LOADED");
     
     
+    
     const listener = require('./includes/listen')({ api });
-global.handleListen = api.listenMqtt(async (error, event) => {
-  if (error) {
-    if (error.error === 'Not logged in.') {
-      logger.log("Your bot account has been logged out!", 'LOGIN');
-      return process.exit(1);
-    }
-    if (error.error === 'Not logged in') {
-      logger.log("Your account has been checkpointed, please confirm your account and log in again!", 'CHECKPOINT');
-      return process.exit(0);
-    }
-    console.log(error);
-    return process.exit(0);
-  }
-
-  // Auto-ping mechanism
-  const idleTime = 600000; // 10 minutes
-  let lastEventTime = Date.now();
-
-  const ping = () => {
-    if (Date.now() - lastEventTime >= idleTime) {
-      console.log("Auto-ping: Keeping connection alive...");
-      api.getCurrentUserID((err) => {
-        if (err) {
-          console.error("Auto-ping failed:", err);
-        } else {
-          console.log("Auto-ping successful");
+    global.handleListen = api.listenMqtt(async (error, event) => {
+      if (error) {
+        if (error.error === 'Not logged in.') {
+          logger.log("Your bot account has been logged out!", 'LOGIN');
+          return process.exit(1);
         }
-      });
-      lastEventTime = Date.now();
-    }
-  };
-
-  const interval = setInterval(ping, idleTime);
-
-  // Handle events
-  lastEventTime = Date.now(); // Update last event time on every new event
-  listener(event);
-
-  // Clear the interval if the process is shutting down
-  process.on('exit', () => clearInterval(interval));
-});
-});
+        if (error.error === 'Not logged in') {
+          logger.log("Your account has been checkpointed, please confirm your account and log in again!", 'CHECKPOINT');
+          return process.exit(0);
+        }
+        console.log(error);
+        return process.exit(0);
+      }
+      return listener(event);
+    });
+  });
 }
-
-
 
 // ___END OF EVENT & API USAGE___ //
 
