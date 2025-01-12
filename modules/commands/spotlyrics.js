@@ -4,7 +4,7 @@ const path = require('path');
 
 module.exports.config = {
     name: "spotlyrics",
-    version: "1.2.0",
+    version: "1.3.0",
     hasPermssion: 0,
     credits: "Biru",
     description: "Fetch lyrics and download Spotify song.",
@@ -55,17 +55,23 @@ module.exports.run = async function ({ api, event, args }) {
             if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
             const cachePath = path.join(cacheDir, `music_${songTitle.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`);
 
-            // Download the MP3 file
-            const downloadResponse = await axios({
-                url: mp3,
-                method: 'GET',
-                responseType: 'stream'
-            });
+            try {
+                // Download the MP3 file and write it to cache
+                const downloadStream = await axios({
+                    url: mp3,
+                    method: 'GET',
+                    responseType: 'stream'
+                });
 
-            const writer = fs.createWriteStream(cachePath);
-            downloadResponse.data.pipe(writer);
+                const writer = fs.createWriteStream(cachePath);
 
-            writer.on('finish', () => {
+                // Wait for the stream to complete
+                await new Promise((resolve, reject) => {
+                    downloadStream.data.pipe(writer);
+                    writer.on('finish', resolve);
+                    writer.on('error', reject);
+                });
+
                 // Send the MP3 file
                 const audioStream = fs.createReadStream(cachePath);
                 api.sendMessage({
@@ -75,12 +81,11 @@ module.exports.run = async function ({ api, event, args }) {
                     // Delete the cached file after sending
                     fs.unlinkSync(cachePath);
                 }, messageID);
-            });
 
-            writer.on('error', (err) => {
-                console.error("Error writing MP3 file:", err);
-                api.sendMessage("Failed to download the song. Please try again later.", threadID, messageID);
-            });
+            } catch (downloadError) {
+                console.error("Error downloading MP3 file:", downloadError);
+                api.sendMessage("Failed to download the MP3 file. Please try again later.", threadID, messageID);
+            }
         });
 
         api.setMessageReaction("✅", messageID, () => {}, true);
