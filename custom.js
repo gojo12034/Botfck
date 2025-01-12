@@ -25,7 +25,7 @@ module.exports = ({ api }) => {
   const config = {
     autoRestart: {
       status: true,
-      time: 40,
+      time: 65, // time in minutes for auto restart interval
       note: 'To avoid problems, enable periodic bot restarts',
     },
     greetings: [
@@ -89,10 +89,24 @@ module.exports = ({ api }) => {
     });
   });
 
+  // Auto restart section, only restart after the specified interval (e.g., every 100 minutes)
   if (config.autoRestart.status) {
-    cron.schedule(`*/${config.autoRestart.time} * * * *`, () => {
-      console.log('Start rebooting the system!');
-      process.exit(1);
+    cron.schedule(`*/${config.autoRestart.time} * * * *`, async () => {
+      try {
+        const threads = await api.getThreadList(20, null, ['INBOX']);
+        for (const thread of threads) {
+          if (thread.isGroup) {
+            await api.sendMessage(
+              '🔃 𝗥𝗲𝘀𝘁𝗮𝗿𝘁𝗶𝗻𝗴 𝗽𝗿𝗼𝗰𝗲𝘀𝘀\n━━━━━━━━━━━━━━━━━━\nBot is restarting...',
+              thread.threadID
+            );
+          }
+        }
+        console.log('Start rebooting the system!');
+        process.exit(1);
+      } catch (err) {
+        console.error('Error during auto-restart:', err);
+      }
     });
   }
 };
