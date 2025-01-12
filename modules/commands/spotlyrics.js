@@ -1,92 +1,93 @@
-const axios = require("axios");
-const fs = require("fs-extra");
-const path = require("path");
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
-const config = {
+module.exports.config = {
     name: "spotlyrics",
-    version: "0.2.0",
+    version: "1.2.0",
     hasPermssion: 0,
     credits: "Biru",
-    description: "Fetch Spotify music and lyrics",
+    description: "Fetch lyrics and download Spotify song.",
     usePrefix: true,
     commandCategory: "Media",
     usages: "[song name]",
     cooldowns: 10,
+    dependencies: { axios: "", fs: "", path: "" }
 };
 
-// Helper function for downloading MP3 file
-async function downloadMp3(url, filePath) {
-    const writer = fs.createWriteStream(filePath);
-    const response = await axios({
-        url,
-        method: "GET",
-        responseType: "stream",
-    });
+module.exports.run = async function ({ api, event, args }) {
+    const { threadID, messageID } = event;
+    const searchQuery = args.join(" ");
 
-    return new Promise((resolve, reject) => {
-        response.data.pipe(writer);
-        writer.on("finish", resolve);
-        writer.on("error", reject);
-    });
-}
-
-// Main function to handle the command
-async function fetchLyrics({ api, event, args }) {
-    api.setMessageReaction("🕢", event.messageID, (err) => {}, true);
-
-    const searchTerm = args.join(" ");
-    if (!searchTerm) {
-        return api.sendMessage("Please provide a song name.", event.threadID, event.messageID);
+    // Validate input
+    if (!searchQuery) {
+        return api.sendMessage("Please provide the name of a song to search.", threadID, messageID);
     }
+
+    // React and show typing indicator
+    api.setMessageReaction("🕢", messageID, () => {}, true);
+    api.sendTypingIndicator(threadID, true);
 
     try {
-        // Fetch data from the API
-        const response = await axios.get(`https://vneerapi.onrender.com/spotlyrics?term=${encodeURIComponent(searchTerm)}`);
-        const data = response.data;
+        // Fetch song details and lyrics from the external API
+        const apiUrl = `https://vneerapi.onrender.com/spotlyrics?term=${encodeURIComponent(searchQuery)}`;
+        const response = await axios.get(apiUrl);
 
-        if (!data.status) {
-            return api.sendMessage("No song found. Please try again with a different keyword.", event.threadID, event.messageID);
+        // Validate API response
+        if (!response.data || !response.data.status || !response.data.song || !response.data.lyrics || !response.data.mp3) {
+            return api.sendMessage("Sorry, I couldn't find the song or its lyrics. Please try another keyword.", threadID, messageID);
         }
 
-        const { song, mp3, lyrics } = data;
-        const message = `🎵 **Title:** ${song.title}\n🎤 **Artist:** ${song.artist}\n⏱ **Duration:** ${(song.duration / 1000 / 60).toFixed(2)} mins\n\n📜 **Lyrics:**\n${lyrics}`;
+        // Extract song details
+        const { song, mp3, lyrics } = response.data;
+        const songTitle = song.title || "Unknown Title";
+        const songArtist = song.artist || "Unknown Artist";
+        const coverImage = song.cover || null;
 
         // Send lyrics first
-        api.sendMessage(message, event.threadID, event.messageID, async () => {
-            // Define file path for caching
-            const cachePath = path.join(__dirname, "cache", `${song.title.replace(/\s+/g, "_")}.mp3`);
+        const lyricsMessage = `🎶 *${songTitle}* by ${songArtist}\n\n📜 Lyrics:\n${lyrics}`;
+        api.sendMessage({
+            body: lyricsMessage,
+            attachment: coverImage ? await axios.get(coverImage, { responseType: 'stream' }).then(res => res.data) : null
+        }, threadID, async () => {
+            // Cache the MP3 file
+            const cacheDir = path.join(__dirname, "cache");
+            if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
+            const cachePath = path.join(cacheDir, `music_${songTitle.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`);
 
-            try {
-                // Download the MP3 file
-                await downloadMp3(mp3, cachePath);
+            // Download the MP3 file
+            const downloadResponse = await axios({
+                url: mp3,
+                method: 'GET',
+                responseType: 'stream'
+            });
 
+            const writer = fs.createWriteStream(cachePath);
+            downloadResponse.data.pipe(writer);
+
+            writer.on('finish', () => {
                 // Send the MP3 file
                 const audioStream = fs.createReadStream(cachePath);
-                api.sendMessage(
-                    {
-                        body: `🎶 Now playing: ${song.title} by ${song.artist}`,
-                        attachment: audioStream,
-                    },
-                    event.threadID,
-                    () => {
-                        fs.unlinkSync(cachePath); // Delete the file after sending
-                    },
-                    event.messageID
-                );
+                api.sendMessage({
+                    body: `🎵 Here's the MP3 for "${songTitle}"`,
+                    attachment: audioStream
+                }, threadID, () => {
+                    // Delete the cached file after sending
+                    fs.unlinkSync(cachePath);
+                }, messageID);
+            });
 
-                api.setMessageReaction("✅", event.messageID, () => {}, true);
-            } catch (error) {
-                console.error("Error downloading MP3:", error);
-                api.sendMessage("An error occurred while downloading the song.", event.threadID, event.messageID);
-                api.setMessageReaction("❌", event.messageID, () => {}, true);
-            }
+            writer.on('error', (err) => {
+                console.error("Error writing MP3 file:", err);
+                api.sendMessage("Failed to download the song. Please try again later.", threadID, messageID);
+            });
         });
-    } catch (error) {
-        console.error("Error:", error);
-        api.sendMessage("An error occurred while fetching the song or lyrics.", event.threadID, event.messageID);
-        api.setMessageReaction("❌", event.messageID, () => {}, true);
-    }
-}
 
-module.exports.config = config;
-module.exports.run = fetchLyrics;
+        api.setMessageReaction("✅", messageID, () => {}, true);
+
+    } catch (error) {
+        console.error("Error fetching lyrics or song:", error.message);
+        api.sendMessage("Failed to retrieve the song or lyrics. Please try again later.", threadID, messageID);
+        api.setMessageReaction("❌", messageID, () => {}, true);
+    }
+};
