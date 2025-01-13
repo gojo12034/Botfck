@@ -35,7 +35,7 @@
     "bluebird": "^3.7.2",
     "canvas": "^3.0.1",
     "chalk": "^4.1.2",
-    "chatbox-fca-remake": "^4.0.9",
+    "chatbox-fca-remake": "^4.2.7",
     "cheerio": "^1.0.0-rc.12",
     "child_process": "^1.0.2",
     "chordsheetjs": "^10.1.0",
