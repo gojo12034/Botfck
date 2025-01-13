@@ -191,49 +191,38 @@ function onBot() {
     if (err) {
       console.error(`Login Error: ${err.message}`);
 
-      // If Facebook flags the bot, attempt to renew appState
-      if (err.error === 'Not logged in' || err.error === 'Checkpoint required') {
-        console.log("Facebook flagged the bot. Renewing appState...");
-
-        // Renew appState
+      if (err.error === 'Not logged in.') {
+        console.log("Attempting to refresh appstate...");
         try {
-          const fbstate = api.getAppState();
-          fs.writeFileSync('appstate.json', JSON.stringify(fbstate, null, 2));
-          console.log("appState renewed successfully. Restarting bot...");
-        } catch (renewError) {
-          console.error("Failed to renew appState:", renewError.message);
+          const newAppState = api.getAppState();
+          fs.writeFileSync('appstate.json', JSON.stringify(newAppState, null, 2));
+          console.log("Appstate refreshed successfully. Restarting bot...");
+          return restartBot();
+        } catch (refreshError) {
+          console.error("Failed to refresh appstate:", refreshError.message);
         }
-
-        restartBot();
-        return;
       }
 
-      console.error("Critical error. Restarting bot...");
+      // Restart the bot for other errors
+      console.error("Error occurred. Restarting bot...");
       restartBot();
       return;
     }
 
-    // Successful login
-    global.client.api = api;
-    console.log("Bot started successfully.");
-  });
-}
-
-
-  const custom = require('./custom');
-  custom({ api });
-  const fbstate = api.getAppState();
+    const custom = require('./custom');
+    custom({ api });
+    const fbstate = api.getAppState();
     api.setOptions(global.config.FCAOption);
-      fs.writeFileSync('appstate.json', JSON.stringify(api.getAppState()));
+    fs.writeFileSync('appstate.json', JSON.stringify(api.getAppState()));
+
     let d = api.getAppState();
     d = JSON.stringify(d, null, '\x09');
-    
 
     if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
       d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
-      writeFileSync(appStateFile, d)
+      writeFileSync(appStateFile, d);
     } else {
-      writeFileSync(appStateFile, d)
+      writeFileSync(appStateFile, d);
     }
     global.account.cookie = fbstate.map(i => i = i.key + "=" + i.value).join(";");
     global.client.api = api
