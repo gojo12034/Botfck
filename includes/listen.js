@@ -12,6 +12,7 @@ module.exports = function ({ api }) {
   //////////////////////////////////////////////////////////////////////
 
   (async function () {
+  if (global.config.autoCreateDB) {
     try {
       const [threads, users] = await Promise.all([
         Threads.getAll(),
