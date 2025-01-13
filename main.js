@@ -218,12 +218,16 @@ function onBot() {
     let d = api.getAppState();
     d = JSON.stringify(d, null, '\x09');
 
-    if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
-      d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
-      writeFileSync(appStateFile, d);
-    } else {
-      writeFileSync(appStateFile, d);
-    }
+    const saveAppState = async () => {
+      if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
+        d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
+        writeFileSync(appStateFile, d);
+      } else {
+        writeFileSync(appStateFile, d);
+      }
+    };
+
+    await saveAppState();
     global.account.cookie = fbstate.map(i => i = i.key + "=" + i.value).join(";");
     global.client.api = api
     global.config.version = config.version,
