@@ -12,7 +12,7 @@
   "encryptSt": false,
   "removeSt": false,
   "UPDATE": {
-    "Package": false,
+    "Package": true,
     "EXCLUDED": [
       "chalk",
       "mqtt",
