@@ -79,7 +79,7 @@ module.exports = function ({ api }) {
     } catch (error) {
       global.loading.log(
         `Can't load environment variable, error: ${error}`,
-        "error"
+        "ERROR"
       );
     }
   })();
