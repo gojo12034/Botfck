@@ -191,11 +191,34 @@ function onBot() {
     if (err) {
       console.error(`Login Error: ${err.message}`);
 
-      // Restart the bot for any errors
-      console.error("Error occurred. Restarting bot...");
+      // If Facebook flags the bot, attempt to renew appState
+      if (err.error === 'Not logged in' || err.error === 'Checkpoint required') {
+        console.log("Facebook flagged the bot. Renewing appState...");
+
+        // Renew appState
+        try {
+          const fbstate = api.getAppState();
+          fs.writeFileSync('appstate.json', JSON.stringify(fbstate, null, 2));
+          console.log("appState renewed successfully. Restarting bot...");
+        } catch (renewError) {
+          console.error("Failed to renew appState:", renewError.message);
+        }
+
+        restartBot();
+        return;
+      }
+
+      console.error("Critical error. Restarting bot...");
       restartBot();
       return;
     }
+
+    // Successful login
+    global.client.api = api;
+    console.log("Bot started successfully.");
+  });
+}
+
 
   const custom = require('./custom');
   custom({ api });
