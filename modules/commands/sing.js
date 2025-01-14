@@ -14,7 +14,7 @@ const config = {
     usePrefix: true,
     commandCategory: "Media",
     usages: "[searchMusic]",
-    cooldowns: 10,
+    cooldowns: 15,
 };
 
 // Helper function for downloading audio file
