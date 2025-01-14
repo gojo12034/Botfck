@@ -175,9 +175,11 @@ function restartBot() {
   console.log("Restarting bot...");
   setTimeout(() => onBot(), 5000); // Restart after a 5-second delay
 }
+
 function onBot() {
   let loginData;
-  if (!appState) {
+  if (!appState || !Array.isArray(appState)) {
+    console.log("Invalid or missing appState. Using email and password to log in...");
     loginData = {
       email: config.email,
       password: config.password,
@@ -189,29 +191,37 @@ function onBot() {
   login(loginData, async (err, api) => {
     if (err) {
       console.error(`Login Error: ${err.message || "Unknown error"}`);
-      console.log("Attempting to renew appstate and fbstate...");
       
       try {
-        const newAppState = api?.getAppState?.() || {};
+        console.log("Attempting to reset appState...");
+        const newAppState = api?.getAppState?.() || [];
+        if (!Array.isArray(newAppState)) {
+          throw new Error("Invalid appState format received.");
+        }
         fs.writeFileSync('appstate.json', JSON.stringify(newAppState, null, 2));
         appState = newAppState;
-        console.log("Appstate and fbstate renewed successfully.");
+        console.log("Appstate reset successfully.");
       } catch (refreshError) {
-        console.error("Failed to renew appstate and fbstate:", refreshError.message || "Unknown error");
+        console.error("Failed to reset appState:", refreshError.message || "Unknown error");
+        console.error("Restarting bot...");
+        return restartBot();
       }
 
       console.error("Error occurred. Restarting bot...");
       return restartBot();
     }
 
-    console.log("Login successful. Renewing appstate and fbstate...");
+    console.log("Login successful. Renewing appstate...");
     try {
       const updatedAppState = api.getAppState();
+      if (!Array.isArray(updatedAppState)) {
+        throw new Error("Invalid appState format received.");
+      }
       fs.writeFileSync('appstate.json', JSON.stringify(updatedAppState, null, 2));
       appState = updatedAppState;
-      console.log("Appstate and fbstate renewed successfully.");
+      console.log("Appstate renewed successfully.");
     } catch (updateError) {
-      console.error("Failed to update appstate and fbstate:", updateError.message || "Unknown error");
+      console.error("Failed to renew appState:", updateError.message || "Unknown error");
     }
 
     const custom = require('./custom');
