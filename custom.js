@@ -103,8 +103,8 @@ module.exports = ({ api }) => {
   });
 
   if (config.autoRestart.status) {
-    // Schedule the restart function for every 100 minutes using custom logic
-    cron.schedule(`0 */1 * * *`, async () => {
+    // Schedule the restart function to run after the greetings (e.g., after 5 minutes)
+    cron.schedule(`5 */1 * * *`, async () => {
       const currentTime = new Date();
       const minutes = currentTime.getHours() * 60 + currentTime.getMinutes();
 
