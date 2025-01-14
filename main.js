@@ -171,12 +171,19 @@ try {
  // return;
 }
 
+let retryCount = 0;
+const maxRetries = 3;
+
 function restartBot() {
-  console.log("Restarting bot...");
+  if (retryCount >= maxRetries) {
+    console.error(`Max retries (${maxRetries}) reached. Bot shutting down.`);
+    process.exit(1); // Exit the bot after exceeding retry limit
+  }
+
+  retryCount++;
+  console.log(`Restarting bot... (Attempt ${retryCount}/${maxRetries})`);
   setTimeout(() => onBot(), 5000); // Restart after a 5-second delay
 }
-
-let retryCount = 0; 
 
 function onBot() {
   let loginData;
@@ -193,26 +200,7 @@ function onBot() {
     if (err) {
       console.error(`Login Error: ${err.message || "Unknown error"}`);
 
-      // Check specific errors
       if (err.error === 'Not logged in.') {
-        console.log("Error: Your bot is not logged in. This might indicate the appstate is invalid or flagged by Facebook.");
-      } else if (err.message && err.message.includes("checkpoint")) {
-        console.log("Error: Your account is under checkpoint. Please confirm the account manually.");
-      } else if (err.message && err.message.includes("automated bot")) {
-        console.log("Error: Facebook flagged the account as an automated bot.");
-      } else {
-        console.log("Login failed with an unknown error. Please check your credentials or appstate.");
-      }
-
-      // Stop retrying after three attempts
-      retryCount++;
-      if (retryCount >= 3) {
-        console.error("Maximum retry attempts reached. Exiting...");
-        process.exit(1);
-      }
-
-      // Refresh appstate if possible
-      if (err.error === 'Not logged in.' && retryCount < 3) {
         console.log("Attempting to refresh appstate...");
         try {
           const newAppState = api.getAppState();
@@ -224,7 +212,8 @@ function onBot() {
         }
       }
 
-      console.error(`Retrying... (${retryCount}/3)`);
+      // Restart the bot for other errors
+      console.error("Error occurred. Restarting bot...");
       restartBot();
       return;
     }
