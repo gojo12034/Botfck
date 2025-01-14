@@ -170,7 +170,6 @@ try {
   logger.loader("Can't find the bot's appstate.", "error");
  // return;
 }
-
 function restartBot() {
   console.log("Restarting bot...");
   setTimeout(() => onBot(), 5000); // Restart after a 5-second delay
@@ -191,7 +190,7 @@ function onBot() {
     if (err) {
       console.error(`Login Error: ${err.message}`);
 
-      if (err.error === 'Not logged in.') {
+      if (err.message.includes('Not logged in.')) {
         console.log("Attempting to refresh appstate...");
         try {
           const newAppState = api.getAppState();
@@ -201,6 +200,10 @@ function onBot() {
         } catch (refreshError) {
           console.error("Failed to refresh appstate:", refreshError.message);
         }
+      } else if (err.message.includes('Flagged as automaton')) {
+        console.error("Error: Account flagged as automaton. Please verify the login process manually.");
+        // Handle any special procedures for automaton flagging here
+        return; // Do not attempt to restart the bot
       }
 
       // Restart the bot for other errors
@@ -228,6 +231,8 @@ function onBot() {
     };
 
     await saveAppState();
+
+
     global.account.cookie = fbstate.map(i => i = i.key + "=" + i.value).join(";");
     global.client.api = api
     global.config.version = config.version,
