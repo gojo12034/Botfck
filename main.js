@@ -171,17 +171,16 @@ try {
  // return;
 }
 
-let retryCount = 0;
-const maxRetries = 3;
+let retryCount = 0; // Initialize retry count
 
 function restartBot() {
-  if (retryCount >= maxRetries) {
-    console.error(`Max retries (${maxRetries}) reached. Bot shutting down.`);
-    process.exit(1); // Exit the bot after exceeding retry limit
+  if (retryCount >= 3) {
+    console.error("Maximum retry attempts reached. Stopping bot...");
+    return; // Stop after 3 failed attempts
   }
 
+  console.log(`Restarting bot... Attempt ${retryCount + 1} of 3`);
   retryCount++;
-  console.log(`Restarting bot... (Attempt ${retryCount}/${maxRetries})`);
   setTimeout(() => onBot(), 5000); // Restart after a 5-second delay
 }
 
@@ -206,9 +205,10 @@ function onBot() {
           const newAppState = api.getAppState();
           fs.writeFileSync('appstate.json', JSON.stringify(newAppState, null, 2));
           console.log("Appstate refreshed successfully. Restarting bot...");
+          retryCount = 0; // Reset retry count on success
           return restartBot();
         } catch (refreshError) {
-          console.error("Failed to refresh appstate:", refreshError.message);
+          console.error("Failed to refresh appstate:", refreshError.message || "Unknown error");
         }
       }
 
@@ -218,7 +218,7 @@ function onBot() {
       return;
     }
 
-    // Reset retry count on successful login
+    // Reset retry count upon successful login
     retryCount = 0;
 
     const custom = require('./custom');
@@ -240,6 +240,8 @@ function onBot() {
     };
 
     await saveAppState();
+
+ 
     global.account.cookie = fbstate.map(i => i = i.key + "=" + i.value).join(";");
     global.client.api = api
     global.config.version = config.version,
