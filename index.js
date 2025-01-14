@@ -42,4 +42,7 @@ startBotProcess("main.js");
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
+}).on('error', (err) => {
+    console.error('Error starting server:', err);
 });
+
