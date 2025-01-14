@@ -175,7 +175,6 @@ function restartBot() {
   console.log("Restarting bot...");
   setTimeout(() => onBot(), 5000); // Restart after a 5-second delay
 }
-
 function onBot() {
   let loginData;
   if (!appState) {
@@ -189,34 +188,39 @@ function onBot() {
 
   login(loginData, async (err, api) => {
     if (err) {
-      console.error(`Login Error: ${err.message}`);
-
-      if (err.error === 'Not logged in.') {
-        console.log("Attempting to refresh appstate...");
-        try {
-          const newAppState = api.getAppState();
-          fs.writeFileSync('appstate.json', JSON.stringify(newAppState, null, 2));
-          console.log("Appstate refreshed successfully. Restarting bot...");
-          return restartBot();
-        } catch (refreshError) {
-          console.error("Failed to refresh appstate:", refreshError.message);
-        }
+      console.error(`Login Error: ${err.message || "Unknown error"}`);
+      console.log("Attempting to renew appstate and fbstate...");
+      
+      try {
+        const newAppState = api?.getAppState?.() || {};
+        fs.writeFileSync('appstate.json', JSON.stringify(newAppState, null, 2));
+        appState = newAppState;
+        console.log("Appstate and fbstate renewed successfully.");
+      } catch (refreshError) {
+        console.error("Failed to renew appstate and fbstate:", refreshError.message || "Unknown error");
       }
 
-      // Restart the bot for other errors
       console.error("Error occurred. Restarting bot...");
-      restartBot();
-      return;
+      return restartBot();
+    }
+
+    console.log("Login successful. Renewing appstate and fbstate...");
+    try {
+      const updatedAppState = api.getAppState();
+      fs.writeFileSync('appstate.json', JSON.stringify(updatedAppState, null, 2));
+      appState = updatedAppState;
+      console.log("Appstate and fbstate renewed successfully.");
+    } catch (updateError) {
+      console.error("Failed to update appstate and fbstate:", updateError.message || "Unknown error");
     }
 
     const custom = require('./custom');
     custom({ api });
     const fbstate = api.getAppState();
     api.setOptions(global.config.FCAOption);
-    fs.writeFileSync('appstate.json', JSON.stringify(api.getAppState()));
+    fs.writeFileSync('appstate.json', JSON.stringify(fbstate, null, 2));
 
-    let d = api.getAppState();
-    d = JSON.stringify(d, null, '\x09');
+    let d = JSON.stringify(fbstate, null, '\x09');
 
     const saveAppState = async () => {
       if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
@@ -228,6 +232,9 @@ function onBot() {
     };
 
     await saveAppState();
+
+    
+
     global.account.cookie = fbstate.map(i => i = i.key + "=" + i.value).join(";");
     global.client.api = api
     global.config.version = config.version,
