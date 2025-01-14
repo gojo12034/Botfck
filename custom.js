@@ -28,13 +28,11 @@ const fetchBibleVerse = async () => {
 // Function to send messages with delays between each thread
 const sendMessageWithDelay = async (api, message, threads, delay = 2000) => {
   for (const thread of threads) {
-    if (thread.isGroup) {
-      try {
-        await api.sendMessage(message, thread.threadID);
-        await new Promise((resolve) => setTimeout(resolve, delay)); // Wait before sending to the next thread
-      } catch (err) {
-        console.error(`Error sending message to thread ${thread.threadID}:`, err);
-      }
+    try {
+      await api.sendMessage(message, thread.threadID);
+      await new Promise((resolve) => setTimeout(resolve, delay)); // Wait before sending to the next thread
+    } catch (err) {
+      console.error(`Error sending message to thread ${thread.threadID}:`, err);
     }
   }
 };
@@ -89,8 +87,13 @@ module.exports = ({ api }) => {
               ? await greeting.messages()
               : greeting.messages[0];
 
-          const threads = await api.getThreadList(20, null, ['INBOX']);
-          await sendMessageWithDelay(api, message, threads, 2000); // Add a 2-second delay between messages
+          // Get all threads from the inbox and filter only group threads
+          const threads = (await api.getThreadList(20, null, ['INBOX'])).filter(
+            (thread) => thread.isGroup === true
+          );
+
+          // Send the message to all group threads
+          await sendMessageWithDelay(api, message, threads, 2000);
         } catch (err) {
           console.error('Error scheduling greeting:', err);
         }
