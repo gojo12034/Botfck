@@ -4,7 +4,7 @@ const { execSync } = require('child_process');
 const config = require("./config.json");
 const listPackage = JSON.parse(readFileSync('./package.json')).dependencies;
 const fs = require("fs");
-const login = require("ryuu-fca-api")
+const login = require("ws3-fca")
 //const login = require('./Meta-Horizon');
 const moment = require("moment-timezone");
 const logger = require("./utils/log.js");
@@ -243,8 +243,7 @@ function onBot() {
 
     await saveAppState();
 
-    
-
+      
     global.account.cookie = fbstate.map(i => i = i.key + "=" + i.value).join(";");
     global.client.api = api
     global.config.version = config.version,
