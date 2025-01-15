@@ -160,7 +160,7 @@ module.exports = function ({ api }) {
   const handleReaction = require("./handle/handleReaction")(runObj);
   const handleEvent = require("./handle/handleEvent")(runObj);
   const handleRefresh = require("./handle/handleRefresh")(runObj);
-  const handleCreateDatabase = require("./handle/handleCreateDatabase")(runObj);
+  //const handleCreateDatabase = require("./handle/handleCreateDatabase")(runObj);
 
   fs.readFile(logarithms, "utf8", (err, data) => {
     if (err) {
