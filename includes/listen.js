@@ -188,7 +188,7 @@ module.exports = function ({ api }) {
       case "message":
       case "message_reply":
       case "message_unsend":
-        handleCreateDatabase(listenObj);
+        //handleCreateDatabase(listenObj);
         handleCommand(listenObj);
         handleReply(listenObj);
         handleCommandEvent(listenObj);
