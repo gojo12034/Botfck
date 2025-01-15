@@ -173,50 +173,45 @@ try {
 
 function onBot() {
   let loginData;
-  if (!appState || !Array.isArray(appState)) {
-    console.log("Invalid or missing appState. Using email and password to log in...");
+
+  if (appState === null) {
     loginData = {
       email: config.email,
       password: config.password,
     };
+  }
+
+  // Use environment variables for credentials if enabled
+  if (config.useEnvForCredentials) {
+    loginData = {
+      email: process.env[config.email],
+      password: process.env[config.password],
+    };
   } else {
-    loginData = { appState };
+    loginData = { appState: appState };
   }
 
   login(loginData, async (err, api) => {
     if (err) {
-      console.error(`Login Error: ${err.message || "Unknown error"}`);
-      
-      try {
-        console.log("Attempting to reset appState...");
-        const newAppState = api?.getAppState?.() || [];
-        if (!Array.isArray(newAppState)) {
-          throw new Error("Invalid appState format received.");
-        }
-        fs.writeFileSync('appstate.json', JSON.stringify(newAppState, null, 2));
-        appState = newAppState;
-        console.log("Appstate reset successfully.");
-      } catch (refreshError) {
-        console.error("Failed to reset appState:", refreshError.message || "Unknown error");
-        console.error("Restarting bot...");
-        return restartBot();
+      if (
+        err.error ===
+        "Error retrieving userID. This can be caused by a lot of things, including getting blocked by Facebook for logging in from an unknown location. Try logging in with a browser to verify."
+      ) {
+        console.log(err.error);
+        process.exit(0);
+      } else {
+        console.log(err);
+        return process.exit(0);
       }
-
-      console.error("Error occurred. Restarting bot...");
-      return restartBot();
     }
 
-    console.log("Login successful. Renewing appstate...");
+    // Refresh fb_dtsg token during system restart
     try {
-      const updatedAppState = api.getAppState();
-      if (!Array.isArray(updatedAppState)) {
-        throw new Error("Invalid appState format received.");
-      }
-      fs.writeFileSync('appstate.json', JSON.stringify(updatedAppState, null, 2));
-      appState = updatedAppState;
-      console.log("Appstate renewed successfully.");
-    } catch (updateError) {
-      console.error("Failed to renew appState:", updateError.message || "Unknown error");
+      console.log("Refreshing fb_dtsg token...");
+      await api.refreshFb_dtsg();
+      console.log("fb_dtsg token refreshed successfully.");
+    } catch (refreshError) {
+      console.error("Failed to refresh fb_dtsg token:", refreshError.message || "Unknown error");
     }
 
     const custom = require('./custom');
