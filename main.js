@@ -174,11 +174,15 @@ try {
 function onBot() {
   let loginData;
 
-  if (appState === null) {
+  // Check if appState exists and is valid; otherwise, fallback to email/password login
+  if (!appState || appState === null) {
+    console.log("Invalid or missing appState. Falling back to email/password login.");
     loginData = {
       email: config.email,
       password: config.password,
     };
+  } else {
+    loginData = { appState: appState };
   }
 
   // Use environment variables for credentials if enabled
@@ -187,20 +191,55 @@ function onBot() {
       email: process.env[config.email],
       password: process.env[config.password],
     };
-  } else {
-    loginData = { appState: appState };
   }
 
   login(loginData, async (err, api) => {
     if (err) {
-      if (
-        err.error ===
-        "Error retrieving userID. This can be caused by a lot of things, including getting blocked by Facebook for logging in from an unknown location. Try logging in with a browser to verify."
-      ) {
-        console.log(err.error);
-        process.exit(0);
+      console.error("Login error:", err.message || "Unknown error");
+
+      // Handle checkpoint or flagged scenarios
+      if (err.error === "Not logged in.") {
+        console.error("Account is logged out. Manual action required (e.g., checkpoint verification).");
+        console.log("Visit Facebook to complete any required actions, then restart the bot.");
+        return process.exit(0);
+      }
+
+      if (err.error && err.error.includes("checkpoint")) {
+        console.error("Account is flagged for checkpoint verification.");
+        console.log("Complete the checkpoint manually in a browser and restart the bot.");
+        return process.exit(0);
+      }
+
+      // Fallback to email/password login if appState fails
+      if (loginData.appState) {
+        console.log("appState login failed. Attempting email/password login...");
+        loginData = {
+          email: config.email,
+          password: config.password,
+        };
+
+        // Retry login with email/password
+        login(loginData, async (retryErr, retryApi) => {
+          if (retryErr) {
+            console.error("Fallback login failed:", retryErr.message || "Unknown error");
+            return process.exit(0);
+          }
+
+          console.log("Fallback login successful. Refreshing appState...");
+          try {
+            const refreshedAppState = retryApi.getAppState();
+            fs.writeFileSync('appstate.json', JSON.stringify(refreshedAppState, null, 2));
+            appState = refreshedAppState;
+            console.log("appState refreshed successfully.");
+          } catch (refreshError) {
+            console.error("Failed to refresh appState:", refreshError.message || "Unknown error");
+          }
+
+          // Proceed with the rest of the setup
+          finalizeSetup(retryApi);
+        });
+        return;
       } else {
-        console.log(err);
         return process.exit(0);
       }
     }
@@ -214,24 +253,42 @@ function onBot() {
       console.error("Failed to refresh fb_dtsg token:", refreshError.message || "Unknown error");
     }
 
-    const custom = require('./custom');
-    custom({ api });
-    const fbstate = api.getAppState();
-    api.setOptions(global.config.FCAOption);
-    fs.writeFileSync('appstate.json', JSON.stringify(fbstate, null, 2));
+    // Refresh appState during system restart
+    try {
+      console.log("Refreshing appState...");
+      const updatedAppState = api.getAppState();
+      fs.writeFileSync('appstate.json', JSON.stringify(updatedAppState, null, 2));
+      appState = updatedAppState;
+      console.log("appState refreshed successfully.");
+    } catch (appStateError) {
+      console.error("Failed to refresh appState:", appStateError.message || "Unknown error");
+    }
 
-    let d = JSON.stringify(fbstate, null, '\x09');
+    // Proceed with the rest of the setup
+    finalizeSetup(api);
+  });
+}
 
-    const saveAppState = async () => {
-      if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
-        d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
-        writeFileSync(appStateFile, d);
-      } else {
-        writeFileSync(appStateFile, d);
-      }
-    };
+// Function to handle setup after successful login
+function finalizeSetup(api) {
+  const custom = require('./custom');
+  custom({ api });
+  const fbstate = api.getAppState();
+  api.setOptions(global.config.FCAOption);
+  fs.writeFileSync('appstate.json', JSON.stringify(fbstate, null, 2));
 
-    await saveAppState();
+  let d = JSON.stringify(fbstate, null, '\x09');
+
+  const saveAppState = async () => {
+    if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
+      d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
+      writeFileSync(appStateFile, d);
+    } else {
+      writeFileSync(appStateFile, d);
+    }
+  };
+
+  saveAppState();
 
       
     global.account.cookie = fbstate.map(i => i = i.key + "=" + i.value).join(";");
