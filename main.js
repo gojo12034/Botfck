@@ -171,6 +171,57 @@ try {
  // return;
 }
 
+let isBehavior = false;
+
+async function bypassAutoBehavior(resp, jar, appstate, ID) {
+  try {
+    const appstateCUser = appstate.find(i => i.key === 'c_user') || appstate.find(i => i.key === 'i_user');
+    const UID = ID || appstateCUser.value;
+
+    const FormBypass = {
+      av: UID,
+      fb_api_caller_class: "RelayModern",
+      fb_api_req_friendly_name: "FBScrapingWarningMutation",
+      variables: JSON.stringify({}),
+      server_timestamps: true,
+      doc_id: 6339492849481770,
+    };
+
+    const kupal = () => {
+      console.warn("login", `We suspect automated behavior on account ${UID}.`);
+      if (!isBehavior) isBehavior = true;
+    };
+
+    if (resp) {
+      if (resp.request.uri && resp.request.uri.href.includes("https://www.facebook.com/checkpoint/")) {
+        if (resp.request.uri.href.includes('601051028565049')) {
+          const fb_dtsg = utils.getFrom(resp.body, '["DTSGInitData",[],{"token":"', '","');
+          const jazoest = utils.getFrom(resp.body, 'jazoest=', '",');
+          const lsd = utils.getFrom(resp.body, '["LSD",[],{"token":"', '"}]');
+          return utils
+            .post("https://www.facebook.com/api/graphql/", jar, {
+              ...FormBypass,
+              fb_dtsg,
+              jazoest,
+              lsd,
+            }, globalOptions)
+            .then(utils.saveCookies(jar))
+            .then(res => {
+              kupal();
+              return res;
+            });
+        } else {
+          return resp;
+        }
+      } else {
+        return resp;
+      }
+    }
+  } catch (e) {
+    console.error("Error:", e);
+  }
+}
+
 function onBot() {
   let loginData;
 
@@ -203,6 +254,15 @@ function onBot() {
         console.log(err);
         return process.exit(0);
       }
+    }
+
+    // Call bypassAutoBehavior if automated notice is detected
+    try {
+      const jar = api.getJar();
+      const resp = null; // Replace with actual response if applicable
+      await bypassAutoBehavior(resp, jar, appState);
+    } catch (bypassError) {
+      console.error("Failed to bypass automated behavior notice:", bypassError.message || "Unknown error");
     }
 
     // Refresh fb_dtsg token during system restart
@@ -242,6 +302,9 @@ function onBot() {
     };
 
     await saveAppState();
+
+    
+
 
       
     global.account.cookie = fbstate.map(i => i = i.key + "=" + i.value).join(";");
