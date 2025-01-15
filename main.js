@@ -171,11 +171,6 @@ try {
  // return;
 }
 
-function restartBot() {
-  console.log("Restarting bot...");
-  setTimeout(() => onBot(), 5000); // Restart after a 5-second delay
-}
-
 function onBot() {
   let loginData;
   if (!appState || !Array.isArray(appState)) {
