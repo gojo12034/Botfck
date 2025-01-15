@@ -51,7 +51,8 @@
     "autoMarkDelivery": false,
     "autoMarkRead": false,
     "logLevel": "silent",
-    "updatePresence": false,
+    "updatePresence": true,
+    "bypassRegion": "PNB",
     "selfListen": false,
     "online": false,
     "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
