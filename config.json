@@ -8,7 +8,7 @@
   "allowInbox": false,
   "autoClean": true,
   "adminOnly": false,
-  "autoCensor": true,
+  "autoCensor": false,
   "encryptSt": false,
   "removeSt": false,
   "UPDATE": {
