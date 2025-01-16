@@ -218,19 +218,32 @@ async function bypassAutoBehavior(resp, appstate) {
       doc_id: 6339492849481770,
     };
 
+    const headers = {
+      'User-Agent': global.config.userAgent, // Load userAgent from config.json
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': '*/*',
+    };
+
     if (resp?.request?.uri?.href?.includes("https://www.facebook.com/checkpoint/")) {
       if (resp.request.uri.href.includes('601051028565049')) {
         const fb_dtsg = utils.getFrom(resp.body, '["DTSGInitData",[],{"token":"', '","');
         const jazoest = utils.getFrom(resp.body, 'jazoest=', '",');
         const lsd = utils.getFrom(resp.body, '["LSD",[],{"token":"', '"}]');
-        await utils.post("https://www.facebook.com/api/graphql/", null, {
+
+        const response = await utils.post("https://www.facebook.com/api/graphql/", null, {
           ...FormBypass,
           fb_dtsg,
           jazoest,
           lsd,
-        }, globalOptions);
-        console.log("Automated behavior bypass successful.");
-        return true;
+        }, { headers }); // Pass headers explicitly
+
+        if (response?.statusCode === 200) {
+          console.log("Automated behavior bypass successful.");
+          return true;
+        } else {
+          console.error("Failed to bypass automated behavior. HTTP Status:", response?.statusCode);
+          return false;
+        }
       } else {
         console.warn("Bypass condition not met. Proceeding...");
         return true;
@@ -244,6 +257,7 @@ async function bypassAutoBehavior(resp, appstate) {
     return false;
   }
 }
+
 
 async function refreshAppState(appState) {
   try {
