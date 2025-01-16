@@ -192,7 +192,13 @@ async function bypassAutoBehavior(resp, appstate, ID) {
   try {
     console.log("Attempting to bypass automated behavior...");
 
-    const appstateCUser = appstate.find(i => i.key === 'c_user') || appstate.find(i => i.key === 'i_user');
+    // Find c_user or i_user in appstate
+    const appstateCUser = appstate?.find(i => i.name === 'c_user') || appstate?.find(i => i.name === 'i_user');
+
+    if (!appstateCUser || !appstateCUser.value) {
+      throw new Error("c_user or i_user not found in appstate.");
+    }
+
     const UID = ID || appstateCUser.value;
 
     const FormBypass = {
@@ -240,6 +246,7 @@ async function bypassAutoBehavior(resp, appstate, ID) {
     console.error("Error in bypassAutoBehavior:", e);
   }
 }
+
 
 function onBot() {
   let loginData;
