@@ -187,6 +187,20 @@ function onBot() {
   }
   loginData = { appState: appState };
   
+  const FCAOptions = {
+    forceLogin: true,
+    listenEvents: true,
+    autoMarkDelivery: false,
+    autoMarkRead: true,
+    logLevel: "silent",
+    autoReconnect: true,
+    updatePresence: true,
+    bypassRegion: "PNB",
+    selfListen: false,
+    online: true,
+    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_2) AppleWebKit/600.3.18 (KHTML, like Gecko) Version/8.0.3 Safari/600.3.18"
+  };
+  
   login(loginData, async (err, api) => {
     if (err) {
       // Check for automated behavior or checkpoint errors
@@ -208,7 +222,7 @@ function onBot() {
     const custom = require('./custom');
     custom({ api });
     const fbstate = api.getAppState();
-    api.setOptions(global.config.FCAOption);
+    api.setOptions(FCAOptions);
       fs.writeFileSync('appstate.json', JSON.stringify(api.getAppState()));
     let d = api.getAppState();
     d = JSON.stringify(d, null, '\x09');
