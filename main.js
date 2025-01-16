@@ -164,31 +164,37 @@ global.getText = function(...args) {
 
 try {
   var appStateFile = resolve(join(global.client.mainPath, config.APPSTATEPATH || "appstate.json"));
-  var appState = ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && 
-    (fs.readFileSync(appStateFile, 'utf8'))[0] != "[" && config.encryptSt) ? 
-    JSON.parse(global.utils.decryptState(fs.readFileSync(appStateFile, 'utf8'), 
+  var appState = ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) &&
+    (fs.readFileSync(appStateFile, 'utf8'))[0] != "[" && config.encryptSt) ?
+    JSON.parse(global.utils.decryptState(fs.readFileSync(appStateFile, 'utf8'),
     (process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER))) : require(appStateFile);
-  
+
   logger.loader("Found the bot's appstate.");
-  
-  // Invoke bypassAutoBehavior if appState exists
+
+  // Check and bypass automated behavior before proceeding
   (async () => {
     try {
       console.log("Checking appState for automated behavior...");
-      await bypassAutoBehavior(null, appState);
+      const bypassSuccess = await bypassAutoBehavior(null, appState);
+      if (bypassSuccess) {
+        console.log("Bypass complete. Loading main functions...");
+        onBot();
+      } else {
+        console.error("Bypass failed. Exiting process...");
+        process.exit(1);
+      }
     } catch (bypassError) {
-      console.error("Failed to bypass automated behavior notice:", bypassError.message || "Unknown error");
+      console.error("Error during bypass automated behavior check:", bypassError.message || "Unknown error");
+      process.exit(1);
     }
   })();
 
 } catch (e) {
   logger.loader("Can't find the bot's appstate.", "error");
-  // return;
+  process.exit(1);
 }
 
-let isBehavior = false;
-
-async function bypassAutoBehavior(resp, appstate, ID) {
+async function bypassAutoBehavior(resp, appstate) {
   try {
     console.log("Attempting to bypass automated behavior...");
 
@@ -199,8 +205,7 @@ async function bypassAutoBehavior(resp, appstate, ID) {
       throw new Error("c_user or i_user not found in appstate.");
     }
 
-    const UID = ID || appstateCUser.value;
-
+    const UID = appstateCUser.value;
     const FormBypass = {
       av: UID,
       fb_api_caller_class: "RelayModern",
@@ -210,40 +215,30 @@ async function bypassAutoBehavior(resp, appstate, ID) {
       doc_id: 6339492849481770,
     };
 
-    const kupal = () => {
-      console.warn(`Automated behavior suspected on account ${UID}. Attempting bypass...`);
-      if (!isBehavior) isBehavior = true;
-    };
-
-    if (resp) {
-      if (resp.request.uri && resp.request.uri.href.includes("https://www.facebook.com/checkpoint/")) {
-        if (resp.request.uri.href.includes('601051028565049')) {
-          const fb_dtsg = utils.getFrom(resp.body, '["DTSGInitData",[],{"token":"', '","');
-          const jazoest = utils.getFrom(resp.body, 'jazoest=', '",');
-          const lsd = utils.getFrom(resp.body, '["LSD",[],{"token":"', '"}]');
-          return utils
-            .post("https://www.facebook.com/api/graphql/", null, {
-              ...FormBypass,
-              fb_dtsg,
-              jazoest,
-              lsd,
-            }, globalOptions)
-            .then(res => {
-              kupal();
-              console.log("Bypass successful.");
-              return res;
-            });
-        } else {
-          console.warn("Bypass condition not met. Skipping...");
-          return resp;
-        }
+    if (resp?.request?.uri?.href?.includes("https://www.facebook.com/checkpoint/")) {
+      if (resp.request.uri.href.includes('601051028565049')) {
+        const fb_dtsg = utils.getFrom(resp.body, '["DTSGInitData",[],{"token":"', '","');
+        const jazoest = utils.getFrom(resp.body, 'jazoest=', '",');
+        const lsd = utils.getFrom(resp.body, '["LSD",[],{"token":"', '"}]');
+        await utils.post("https://www.facebook.com/api/graphql/", null, {
+          ...FormBypass,
+          fb_dtsg,
+          jazoest,
+          lsd,
+        }, globalOptions);
+        console.log("Automated behavior bypass successful.");
+        return true;
       } else {
-        console.warn("No checkpoint detected. Continuing...");
-        return resp;
+        console.warn("Bypass condition not met. Proceeding...");
+        return true;
       }
+    } else {
+      console.warn("No checkpoint detected. Proceeding...");
+      return true;
     }
   } catch (e) {
     console.error("Error in bypassAutoBehavior:", e);
+    return false;
   }
 }
 
