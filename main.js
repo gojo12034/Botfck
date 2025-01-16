@@ -11,8 +11,6 @@ const logger = require("./utils/log.js");
 const chalk = require("chalk");
 const { spawn } = require("child_process");
 const pkg = require('./package.json');
-const EventEmitter = require('events');
-EventEmitter.defaultMaxListeners = 20; // Increase max listeners
 //*const fca = JSON.parse(fs.readFileSync("fca.json", "utf8"));
 console.log(chalk.bold.dim(` ${process.env.REPL_SLUG}`.toUpperCase() + `(v${pkg.version})`));
   logger.log(`Getting Started!`, "STARTER");
@@ -199,12 +197,11 @@ try {
   process.exit(1);
 }
 
-
-
 async function bypassAutoBehavior(resp, appstate) {
   try {
     console.log("Attempting to bypass automated behavior...");
 
+    // Find c_user or i_user in appstate
     const appstateCUser = appstate?.find(i => i.name === 'c_user') || appstate?.find(i => i.name === 'i_user');
 
     if (!appstateCUser || !appstateCUser.value) {
@@ -248,19 +245,13 @@ async function bypassAutoBehavior(resp, appstate) {
   }
 }
 
-async function refreshAppState(api) {
+async function refreshAppState(appState) {
   try {
     console.log("Refreshing appState...");
-    const updatedAppState = api.getAppState();
-
-    // Verify appState contains valid tokens
-    if (!updatedAppState.find(i => i.name === 'c_user' || i.name === 'i_user')) {
-      throw new Error("Invalid appState: Missing c_user or i_user.");
-    }
-
+    const updatedAppState = appState; // Assuming the login or bypass process modifies the appState
     const appStateFile = resolve(join(global.client.mainPath, config.APPSTATEPATH || "appstate.json"));
-    let d = JSON.stringify(updatedAppState, null, 2);
 
+    let d = JSON.stringify(updatedAppState, null, 2);
     if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
       d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
     }
@@ -271,43 +262,6 @@ async function refreshAppState(api) {
     process.exit(1);
   }
 }
-
-function onBot() {
-  let loginData;
-
-  if (appState === null) {
-    loginData = {
-      email: config.email,
-      password: config.password,
-    };
-  }
-
-  // Use environment variables for credentials if enabled
-  if (config.useEnvForCredentials) {
-    loginData = {
-      email: process.env[config.email],
-      password: process.env[config.password],
-    };
-  } else {
-    loginData = { appState: appState };
-  }
-
-  login(loginData, async (err, api) => {
-    if (err) {
-      console.error(`Login Error: ${err.message || "Unknown error"}`);
-      process.exit(1);
-    }
-
-    console.log("Login successful. Initializing bot functions...");
-
-    try {
-      await refreshAppState(api);
-    } catch (refreshError) {
-      console.error("Error during appState refresh:", refreshError.message);
-      process.exit(1);
-    }
-
-
 
 function onBot() {
   let loginData;
