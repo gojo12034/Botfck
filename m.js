@@ -1,6 +1,3 @@
-
-
-
 const { readdirSync, readFileSync, writeFileSync } = require("fs-extra");
 const { join, resolve } = require('path')
 const { execSync } = require('child_process');
@@ -395,18 +392,17 @@ function onBot() {
           logger.log("Your bot account has been logged out!", 'LOGIN');
           return process.exit(1);
         }
-        if (error.error === 'Not logged in') {
-          logger.log("Your account has been checkpointed, please confirm your account and log in again!", 'CHECKPOINT');
+        if (error.error === 'Your account has been checkpointed.') {
+          logger.log("Your account is checkpointed. Please log in manually to confirm.", 'CHECKPOINT');
           return process.exit(0);
         }
-        console.log(error);
+        console.error("Listener error:", error);
         return process.exit(0);
       }
       return listener(event);
     });
   });
 }
-
 // ___END OF EVENT & API USAGE___ //
 
 (async () => {
