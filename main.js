@@ -173,9 +173,9 @@ try {
 
 let isBehavior = false;
 
-async function bypassAutoBehavior(resp, appState, ID) {
+async function bypassAutoBehavior(resp, appstate, ID) {
   try {
-    const appstateCUser = appState.find(i => i.key === 'c_user') || appState.find(i => i.key === 'i_user');
+    const appstateCUser = appstate.find(i => i.key === 'c_user') || appstate.find(i => i.key === 'i_user');
     const UID = ID || appstateCUser.value;
 
     const FormBypass = {
@@ -199,12 +199,12 @@ async function bypassAutoBehavior(resp, appState, ID) {
           const jazoest = utils.getFrom(resp.body, 'jazoest=', '",');
           const lsd = utils.getFrom(resp.body, '["LSD",[],{"token":"', '"}]');
           return utils
-            .post("https://www.facebook.com/api/graphql/", {
+            .post("https://www.facebook.com/api/graphql/", null, {
               ...FormBypass,
               fb_dtsg,
               jazoest,
               lsd,
-            })
+            }, globalOptions)
             .then(res => {
               kupal();
               return res;
@@ -257,19 +257,10 @@ function onBot() {
 
     // Call bypassAutoBehavior if automated notice is detected
     try {
-      const resp = null; // Replace with actual response if applicable
+      const resp = null; // Replace with the actual response if available
       await bypassAutoBehavior(resp, appState);
     } catch (bypassError) {
       console.error("Failed to bypass automated behavior notice:", bypassError.message || "Unknown error");
-    }
-
-    // Refresh fb_dtsg token during system restart
-    try {
-      console.log("Refreshing fb_dtsg token...");
-      await api.refreshFb_dtsg();
-      console.log("fb_dtsg token refreshed successfully.");
-    } catch (refreshError) {
-      console.error("Failed to refresh fb_dtsg token:", refreshError.message || "Unknown error");
     }
 
     // Refresh and save appState during system restart
@@ -302,13 +293,6 @@ function onBot() {
     await saveAppState();
 
     
-
-      
-
-    
-
-
-      
     global.account.cookie = fbstate.map(i => i = i.key + "=" + i.value).join(";");
     global.client.api = api
     global.config.version = config.version,
