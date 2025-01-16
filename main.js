@@ -39,7 +39,7 @@ global.account = new Object();
         });
 
         child.on("error", (error) => {
-            console.log(chalk.yellow(``), `An error occurred while starting the child process: ${error}`);
+            console.log(chalk.yellow(``), `An error occurred while starting the child process: ${error}`);
         });
     } catch (error) {
         console.error("An error occurred:", error);
@@ -162,53 +162,22 @@ global.getText = function(...args) {
   return text;
 };
 
-// Invoke bypassAutoBehavior immediately after appState is found
 try {
   var appStateFile = resolve(join(global.client.mainPath, config.APPSTATEPATH || "appstate.json"));
-  var appState = ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) &&
-    (fs.readFileSync(appStateFile, 'utf8'))[0] != "[" && config.encryptSt) ?
-    JSON.parse(global.utils.decryptState(fs.readFileSync(appStateFile, 'utf8'),
-    (process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER))) : require(appStateFile);
-
-  logger.loader("Found the bot's appstate.");
-
-  // Check and bypass automated behavior before proceeding
-  (async () => {
-    try {
-      console.log("Checking appState for automated behavior...");
-      const bypassSuccess = await bypassAutoBehavior(null, appState);
-      if (bypassSuccess) {
-        console.log("Bypass complete. Renewing appState...");
-        await refreshAppState(appState);
-        console.log("Loading main functions...");
-        onBot();
-      } else {
-        console.error("Bypass failed. Exiting process...");
-        process.exit(1);
-      }
-    } catch (bypassError) {
-      console.error("Error during bypass automated behavior check:", bypassError.message || "Unknown error");
-      process.exit(1);
-    }
-  })();
-
+  var appState = ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && (fs.readFileSync(appStateFile, 'utf8'))[0] != "[" && config.encryptSt) ? JSON.parse(global.utils.decryptState(fs.readFileSync(appStateFile, 'utf8'), (process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER))) : require(appStateFile);
+  logger.loader("Found the bot's appstate.")
 } catch (e) {
   logger.loader("Can't find the bot's appstate.", "error");
-  process.exit(1);
+ // return;
 }
 
-async function bypassAutoBehavior(resp, appstate) {
+let isBehavior = false;
+
+async function bypassAutoBehavior(resp, appstate, ID) {
   try {
-    console.log("Attempting to bypass automated behavior...");
+    const appstateCUser = appstate.find(i => i.key === 'c_user') || appstate.find(i => i.key === 'i_user');
+    const UID = ID || appstateCUser.value;
 
-    // Find c_user or i_user in appstate
-    const appstateCUser = appstate?.find(i => i.name === 'c_user') || appstate?.find(i => i.name === 'i_user');
-
-    if (!appstateCUser || !appstateCUser.value) {
-      throw new Error("c_user or i_user not found in appstate.");
-    }
-
-    const UID = appstateCUser.value;
     const FormBypass = {
       av: UID,
       fb_api_caller_class: "RelayModern",
@@ -218,62 +187,37 @@ async function bypassAutoBehavior(resp, appstate) {
       doc_id: 6339492849481770,
     };
 
-    const headers = {
-      'User-Agent': global.config.userAgent, // Load userAgent from config.json
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': '*/*',
+    const kupal = () => {
+      console.warn("login", `We suspect automated behavior on account ${UID}.`);
+      if (!isBehavior) isBehavior = true;
     };
 
-    if (resp?.request?.uri?.href?.includes("https://www.facebook.com/checkpoint/")) {
-      if (resp.request.uri.href.includes('601051028565049')) {
-        const fb_dtsg = utils.getFrom(resp.body, '["DTSGInitData",[],{"token":"', '","');
-        const jazoest = utils.getFrom(resp.body, 'jazoest=', '",');
-        const lsd = utils.getFrom(resp.body, '["LSD",[],{"token":"', '"}]');
-
-        const response = await utils.post("https://www.facebook.com/api/graphql/", null, {
-          ...FormBypass,
-          fb_dtsg,
-          jazoest,
-          lsd,
-        }, { headers }); // Pass headers explicitly
-
-        if (response?.statusCode === 200) {
-          console.log("Automated behavior bypass successful.");
-          return true;
+    if (resp) {
+      if (resp.request.uri && resp.request.uri.href.includes("https://www.facebook.com/checkpoint/")) {
+        if (resp.request.uri.href.includes('601051028565049')) {
+          const fb_dtsg = utils.getFrom(resp.body, '["DTSGInitData",[],{"token":"', '","');
+          const jazoest = utils.getFrom(resp.body, 'jazoest=', '",');
+          const lsd = utils.getFrom(resp.body, '["LSD",[],{"token":"', '"}]');
+          return utils
+            .post("https://www.facebook.com/api/graphql/", null, {
+              ...FormBypass,
+              fb_dtsg,
+              jazoest,
+              lsd,
+            }, globalOptions)
+            .then(res => {
+              kupal();
+              return res;
+            });
         } else {
-          console.error("Failed to bypass automated behavior. HTTP Status:", response?.statusCode);
-          return false;
+          return resp;
         }
       } else {
-        console.warn("Bypass condition not met. Proceeding...");
-        return true;
+        return resp;
       }
-    } else {
-      console.warn("No checkpoint detected. Proceeding...");
-      return true;
     }
   } catch (e) {
     console.error("Error in bypassAutoBehavior:", e);
-    return false;
-  }
-}
-
-
-async function refreshAppState(appState) {
-  try {
-    console.log("Refreshing appState...");
-    const updatedAppState = appState; // Assuming the login or bypass process modifies the appState
-    const appStateFile = resolve(join(global.client.mainPath, config.APPSTATEPATH || "appstate.json"));
-
-    let d = JSON.stringify(updatedAppState, null, 2);
-    if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
-      d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
-    }
-    fs.writeFileSync(appStateFile, d);
-    console.log("appState refreshed and saved successfully.");
-  } catch (error) {
-    console.error("Failed to refresh appState:", error.message || "Unknown error");
-    process.exit(1);
   }
 }
 
@@ -299,12 +243,36 @@ function onBot() {
 
   login(loginData, async (err, api) => {
     if (err) {
-      console.error(`Login Error: ${err.message || "Unknown error"}`);
-      process.exit(1);
+      if (
+        err.error ===
+        "Error retrieving userID. This can be caused by a lot of things, including getting blocked by Facebook for logging in from an unknown location. Try logging in with a browser to verify."
+      ) {
+        console.log(err.error);
+        process.exit(0);
+      } else {
+        console.log(err);
+        return process.exit(0);
+      }
     }
 
-    console.log("Login successful. Initializing bot functions...");
+    // Call bypassAutoBehavior if automated notice is detected
+    try {
+      const resp = null; // Replace with the actual response if available
+      await bypassAutoBehavior(resp, appState);
+    } catch (bypassError) {
+      console.error("Failed to bypass automated behavior notice:", bypassError.message || "Unknown error");
+    }
 
+    // Refresh and save appState during system restart
+    try {
+      console.log("Refreshing appState...");
+      const updatedAppState = api.getAppState();
+      fs.writeFileSync('appstate.json', JSON.stringify(updatedAppState, null, 2));
+      appState = updatedAppState;
+      console.log("appState refreshed and saved successfully.");
+    } catch (updateError) {
+      console.error("Failed to refresh appState:", updateError.message || "Unknown error");
+    }
 
     const custom = require('./custom');
     custom({ api });
@@ -525,7 +493,3 @@ function onBot() {
   }
 })();
 
-/* *
-This bot was created by me (CATALIZCS) and my brother SPERMLORD. Do not steal my code. (つ ͡ ° ͜ʖ ͡° )つ ✄ ╰⋃╯
-This file was modified by me (@YanMaglinte). Do not steal my credits. (つ ͡ ° ͜ʖ ͡° )つ ✄ ╰⋃╯
-* */
