@@ -162,6 +162,7 @@ global.getText = function(...args) {
   return text;
 };
 
+// Invoke bypassAutoBehavior immediately after appState is found
 try {
   var appStateFile = resolve(join(global.client.mainPath, config.APPSTATEPATH || "appstate.json"));
   var appState = ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) &&
@@ -177,7 +178,9 @@ try {
       console.log("Checking appState for automated behavior...");
       const bypassSuccess = await bypassAutoBehavior(null, appState);
       if (bypassSuccess) {
-        console.log("Bypass complete. Loading main functions...");
+        console.log("Bypass complete. Renewing appState...");
+        await refreshAppState(appState);
+        console.log("Loading main functions...");
         onBot();
       } else {
         console.error("Bypass failed. Exiting process...");
@@ -242,6 +245,23 @@ async function bypassAutoBehavior(resp, appstate) {
   }
 }
 
+async function refreshAppState(appState) {
+  try {
+    console.log("Refreshing appState...");
+    const updatedAppState = appState; // Assuming the login or bypass process modifies the appState
+    const appStateFile = resolve(join(global.client.mainPath, config.APPSTATEPATH || "appstate.json"));
+
+    let d = JSON.stringify(updatedAppState, null, 2);
+    if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
+      d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
+    }
+    fs.writeFileSync(appStateFile, d);
+    console.log("appState refreshed and saved successfully.");
+  } catch (error) {
+    console.error("Failed to refresh appState:", error.message || "Unknown error");
+    process.exit(1);
+  }
+}
 
 function onBot() {
   let loginData;
@@ -266,26 +286,11 @@ function onBot() {
   login(loginData, async (err, api) => {
     if (err) {
       console.error(`Login Error: ${err.message || "Unknown error"}`);
-      if (
-        err.error ===
-        "Error retrieving userID. This can be caused by a lot of things, including getting blocked by Facebook for logging in from an unknown location. Try logging in with a browser to verify."
-      ) {
-        console.log("Redirecting to browser verification...");
-        process.exit(0);
-      }
-
-      return process.exit(0);
+      process.exit(1);
     }
 
-    console.log("Login successful. Proceeding with appState refresh...");
-    try {
-      const updatedAppState = api.getAppState();
-      fs.writeFileSync('appstate.json', JSON.stringify(updatedAppState, null, 2));
-      appState = updatedAppState;
-      console.log("appState refreshed and saved successfully.");
-    } catch (updateError) {
-      console.error("Failed to refresh appState:", updateError.message || "Unknown error");
-    }
+    console.log("Login successful. Initializing bot functions...");
+
 
     const custom = require('./custom');
     custom({ api });
