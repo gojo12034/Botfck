@@ -190,7 +190,7 @@ function onBot() {
   const FCAOptions = {
     forceLogin: true,
     listenEvents: true,
-    autoMarkDelivery: false,
+    autoMarkDelivery: true,
     autoMarkRead: true,
     logLevel: "silent",
     autoReconnect: true,
