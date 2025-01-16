@@ -175,8 +175,14 @@ let isBehavior = false;
 
 async function bypassAutoBehavior(resp, appstate, ID) {
   try {
+    console.log("Checking for automated behavior notice...");
     const appstateCUser = appstate.find(i => i.key === 'c_user') || appstate.find(i => i.key === 'i_user');
-    const UID = ID || appstateCUser.value;
+    const UID = ID || (appstateCUser ? appstateCUser.value : null);
+
+    if (!UID) {
+      console.warn("Cannot determine UID from appstate. Skipping bypass...");
+      return;
+    }
 
     const FormBypass = {
       av: UID,
@@ -188,16 +194,18 @@ async function bypassAutoBehavior(resp, appstate, ID) {
     };
 
     const kupal = () => {
-      console.warn("login", `We suspect automated behavior on account ${UID}.`);
+      console.warn("Automated behavior detected on account:", UID);
       if (!isBehavior) isBehavior = true;
     };
 
     if (resp) {
       if (resp.request.uri && resp.request.uri.href.includes("https://www.facebook.com/checkpoint/")) {
         if (resp.request.uri.href.includes('601051028565049')) {
+          console.log("Bypassing automated notice for UID:", UID);
           const fb_dtsg = utils.getFrom(resp.body, '["DTSGInitData",[],{"token":"', '","');
           const jazoest = utils.getFrom(resp.body, 'jazoest=', '",');
           const lsd = utils.getFrom(resp.body, '["LSD",[],{"token":"', '"}]');
+
           return utils
             .post("https://www.facebook.com/api/graphql/", null, {
               ...FormBypass,
@@ -208,16 +216,21 @@ async function bypassAutoBehavior(resp, appstate, ID) {
             .then(res => {
               kupal();
               return res;
+            })
+            .catch(err => {
+              console.error("Failed to bypass automated behavior notice:", err.message || err);
             });
         } else {
+          console.log("No specific automated notice to bypass.");
           return resp;
         }
       } else {
+        console.log("No checkpoint detected in the response.");
         return resp;
       }
     }
   } catch (e) {
-    console.error("Error in bypassAutoBehavior:", e);
+    console.error("Error in bypassAutoBehavior:", e.message || e);
   }
 }
 
@@ -243,24 +256,26 @@ function onBot() {
 
   login(loginData, async (err, api) => {
     if (err) {
+      console.error("Login Error:", err.message || err);
       if (
         err.error ===
         "Error retrieving userID. This can be caused by a lot of things, including getting blocked by Facebook for logging in from an unknown location. Try logging in with a browser to verify."
       ) {
-        console.log(err.error);
+        console.log("Account blocked: ", err.error);
         process.exit(0);
       } else {
-        console.log(err);
-        return process.exit(0);
+        process.exit(0);
       }
     }
+
+    console.log("Login successful. Proceeding with bypass checks...");
 
     // Call bypassAutoBehavior if automated notice is detected
     try {
       const resp = null; // Replace with the actual response if available
       await bypassAutoBehavior(resp, appState);
     } catch (bypassError) {
-      console.error("Failed to bypass automated behavior notice:", bypassError.message || "Unknown error");
+      console.error("Bypass failed:", bypassError.message || bypassError);
     }
 
     // Refresh and save appState during system restart
@@ -271,7 +286,7 @@ function onBot() {
       appState = updatedAppState;
       console.log("appState refreshed and saved successfully.");
     } catch (updateError) {
-      console.error("Failed to refresh appState:", updateError.message || "Unknown error");
+      console.error("Failed to refresh appState:", updateError.message || updateError);
     }
 
     const custom = require('./custom');
@@ -291,6 +306,7 @@ function onBot() {
     };
 
     await saveAppState();
+
 
     
     global.account.cookie = fbstate.map(i => i = i.key + "=" + i.value).join(";");
