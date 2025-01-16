@@ -175,14 +175,10 @@ let isBehavior = false;
 
 async function bypassAutoBehavior(resp, appstate, ID) {
   try {
-    console.log("Checking for automated behavior notice...");
-    const appstateCUser = appstate.find(i => i.key === 'c_user') || appstate.find(i => i.key === 'i_user');
-    const UID = ID || (appstateCUser ? appstateCUser.value : null);
+    console.log("Attempting to bypass automated behavior...");
 
-    if (!UID) {
-      console.warn("Cannot determine UID from appstate. Skipping bypass...");
-      return;
-    }
+    const appstateCUser = appstate.find(i => i.key === 'c_user') || appstate.find(i => i.key === 'i_user');
+    const UID = ID || appstateCUser.value;
 
     const FormBypass = {
       av: UID,
@@ -194,18 +190,16 @@ async function bypassAutoBehavior(resp, appstate, ID) {
     };
 
     const kupal = () => {
-      console.warn("Automated behavior detected on account:", UID);
+      console.warn(`Automated behavior suspected on account ${UID}. Attempting bypass...`);
       if (!isBehavior) isBehavior = true;
     };
 
     if (resp) {
       if (resp.request.uri && resp.request.uri.href.includes("https://www.facebook.com/checkpoint/")) {
         if (resp.request.uri.href.includes('601051028565049')) {
-          console.log("Bypassing automated notice for UID:", UID);
           const fb_dtsg = utils.getFrom(resp.body, '["DTSGInitData",[],{"token":"', '","');
           const jazoest = utils.getFrom(resp.body, 'jazoest=', '",');
           const lsd = utils.getFrom(resp.body, '["LSD",[],{"token":"', '"}]');
-
           return utils
             .post("https://www.facebook.com/api/graphql/", null, {
               ...FormBypass,
@@ -215,22 +209,20 @@ async function bypassAutoBehavior(resp, appstate, ID) {
             }, globalOptions)
             .then(res => {
               kupal();
+              console.log("Bypass successful.");
               return res;
-            })
-            .catch(err => {
-              console.error("Failed to bypass automated behavior notice:", err.message || err);
             });
         } else {
-          console.log("No specific automated notice to bypass.");
+          console.warn("Bypass condition not met. Skipping...");
           return resp;
         }
       } else {
-        console.log("No checkpoint detected in the response.");
+        console.warn("No checkpoint detected. Continuing...");
         return resp;
       }
     }
   } catch (e) {
-    console.error("Error in bypassAutoBehavior:", e.message || e);
+    console.error("Error in bypassAutoBehavior:", e);
   }
 }
 
@@ -256,37 +248,31 @@ function onBot() {
 
   login(loginData, async (err, api) => {
     if (err) {
-      console.error("Login Error:", err.message || err);
+      console.error(`Login Error: ${err.message || "Unknown error"}`);
       if (
         err.error ===
         "Error retrieving userID. This can be caused by a lot of things, including getting blocked by Facebook for logging in from an unknown location. Try logging in with a browser to verify."
       ) {
-        console.log("Account blocked: ", err.error);
-        process.exit(0);
-      } else {
+        console.log("Redirecting to browser verification...");
         process.exit(0);
       }
+
+      if (err.message.includes("maxRedirects")) {
+        console.error("Redirect loop detected. Attempting to bypass automated notice...");
+        await bypassAutoBehavior(null, appState);
+      }
+
+      return process.exit(0);
     }
 
-    console.log("Login successful. Proceeding with bypass checks...");
-
-    // Call bypassAutoBehavior if automated notice is detected
+    console.log("Login successful. Proceeding with appState refresh...");
     try {
-      const resp = null; // Replace with the actual response if available
-      await bypassAutoBehavior(resp, appState);
-    } catch (bypassError) {
-      console.error("Bypass failed:", bypassError.message || bypassError);
-    }
-
-    // Refresh and save appState during system restart
-    try {
-      console.log("Refreshing appState...");
       const updatedAppState = api.getAppState();
       fs.writeFileSync('appstate.json', JSON.stringify(updatedAppState, null, 2));
       appState = updatedAppState;
       console.log("appState refreshed and saved successfully.");
     } catch (updateError) {
-      console.error("Failed to refresh appState:", updateError.message || updateError);
+      console.error("Failed to refresh appState:", updateError.message || "Unknown error");
     }
 
     const custom = require('./custom');
@@ -306,6 +292,8 @@ function onBot() {
     };
 
     await saveAppState();
+
+    
 
 
     
