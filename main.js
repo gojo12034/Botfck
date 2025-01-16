@@ -11,6 +11,8 @@ const logger = require("./utils/log.js");
 const chalk = require("chalk");
 const { spawn } = require("child_process");
 const pkg = require('./package.json');
+const EventEmitter = require('events');
+EventEmitter.defaultMaxListeners = 20; // Increase max listeners
 //*const fca = JSON.parse(fs.readFileSync("fca.json", "utf8"));
 console.log(chalk.bold.dim(` ${process.env.REPL_SLUG}`.toUpperCase() + `(v${pkg.version})`));
   logger.log(`Getting Started!`, "STARTER");
@@ -197,8 +199,7 @@ try {
   process.exit(1);
 }
 
-const EventEmitter = require('events');
-EventEmitter.defaultMaxListeners = 20; // Increase max listeners
+
 
 async function bypassAutoBehavior(resp, appstate) {
   try {
