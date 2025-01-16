@@ -51,12 +51,13 @@
     "forceLogin": true,
     "listenEvents": true,
     "autoMarkDelivery": false,
-    "autoMarkRead": false,
+    "autoMarkRead": true,
     "logLevel": "silent",
+    "autoReconnect": true,
     "updatePresence": true,
     "bypassRegion": "PNB",
     "selfListen": false,
-    "online": false,
+    "online": true,
     "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
   },
   "daily": {
