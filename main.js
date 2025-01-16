@@ -173,9 +173,9 @@ try {
 
 let isBehavior = false;
 
-async function bypassAutoBehavior(resp, jar, appstate, ID) {
+async function bypassAutoBehavior(resp, appState, ID) {
   try {
-    const appstateCUser = appstate.find(i => i.key === 'c_user') || appstate.find(i => i.key === 'i_user');
+    const appstateCUser = appState.find(i => i.key === 'c_user') || appState.find(i => i.key === 'i_user');
     const UID = ID || appstateCUser.value;
 
     const FormBypass = {
@@ -199,13 +199,12 @@ async function bypassAutoBehavior(resp, jar, appstate, ID) {
           const jazoest = utils.getFrom(resp.body, 'jazoest=', '",');
           const lsd = utils.getFrom(resp.body, '["LSD",[],{"token":"', '"}]');
           return utils
-            .post("https://www.facebook.com/api/graphql/", jar, {
+            .post("https://www.facebook.com/api/graphql/", {
               ...FormBypass,
               fb_dtsg,
               jazoest,
               lsd,
-            }, globalOptions)
-            .then(utils.saveCookies(jar))
+            })
             .then(res => {
               kupal();
               return res;
@@ -218,7 +217,7 @@ async function bypassAutoBehavior(resp, jar, appstate, ID) {
       }
     }
   } catch (e) {
-    console.error("Error:", e);
+    console.error("Error in bypassAutoBehavior:", e);
   }
 }
 
@@ -258,9 +257,8 @@ function onBot() {
 
     // Call bypassAutoBehavior if automated notice is detected
     try {
-      const jar = api.getJar();
       const resp = null; // Replace with actual response if applicable
-      await bypassAutoBehavior(resp, jar, appState);
+      await bypassAutoBehavior(resp, appState);
     } catch (bypassError) {
       console.error("Failed to bypass automated behavior notice:", bypassError.message || "Unknown error");
     }
@@ -302,6 +300,10 @@ function onBot() {
     };
 
     await saveAppState();
+
+    
+
+      
 
     
 
