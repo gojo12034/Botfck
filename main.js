@@ -162,6 +162,30 @@ global.getText = function(...args) {
   return text;
 };
 
+try {
+  var appStateFile = resolve(join(global.client.mainPath, config.APPSTATEPATH || "appstate.json"));
+  var appState = ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && 
+    (fs.readFileSync(appStateFile, 'utf8'))[0] != "[" && config.encryptSt) ? 
+    JSON.parse(global.utils.decryptState(fs.readFileSync(appStateFile, 'utf8'), 
+    (process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER))) : require(appStateFile);
+  
+  logger.loader("Found the bot's appstate.");
+  
+  // Invoke bypassAutoBehavior if appState exists
+  (async () => {
+    try {
+      console.log("Checking appState for automated behavior...");
+      await bypassAutoBehavior(null, appState);
+    } catch (bypassError) {
+      console.error("Failed to bypass automated behavior notice:", bypassError.message || "Unknown error");
+    }
+  })();
+
+} catch (e) {
+  logger.loader("Can't find the bot's appstate.", "error");
+  // return;
+}
+
 let isBehavior = false;
 
 async function bypassAutoBehavior(resp, appstate, ID) {
@@ -215,25 +239,6 @@ async function bypassAutoBehavior(resp, appstate, ID) {
   } catch (e) {
     console.error("Error in bypassAutoBehavior:", e);
   }
-}
-
-// Check for and load appState
-try {
-  const appStateFile = resolve(join(global.client.mainPath, config.APPSTATEPATH || "appstate.json"));
-  let appState = ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && 
-                  (fs.readFileSync(appStateFile, 'utf8'))[0] != "[" && 
-                  config.encryptSt) 
-                  ? JSON.parse(global.utils.decryptState(fs.readFileSync(appStateFile, 'utf8'), (process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER))) 
-                  : require(appStateFile);
-
-  logger.loader("Found the bot's appstate.");
-  
-  // Invoke bypassAutoBehavior immediately after appState is found
-  await bypassAutoBehavior(null, appState);
-
-} catch (e) {
-  logger.loader("Can't find the bot's appstate.", "error");
-  // return;
 }
 
 function onBot() {
@@ -297,12 +302,6 @@ function onBot() {
     };
 
     await saveAppState();
-
-    
-
-
-    
-
 
     
     global.account.cookie = fbstate.map(i => i = i.key + "=" + i.value).join(";");
