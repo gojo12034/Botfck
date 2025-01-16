@@ -162,15 +162,6 @@ global.getText = function(...args) {
   return text;
 };
 
-try {
-  var appStateFile = resolve(join(global.client.mainPath, config.APPSTATEPATH || "appstate.json"));
-  var appState = ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && (fs.readFileSync(appStateFile, 'utf8'))[0] != "[" && config.encryptSt) ? JSON.parse(global.utils.decryptState(fs.readFileSync(appStateFile, 'utf8'), (process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER))) : require(appStateFile);
-  logger.loader("Found the bot's appstate.")
-} catch (e) {
-  logger.loader("Can't find the bot's appstate.", "error");
- // return;
-}
-
 let isBehavior = false;
 
 async function bypassAutoBehavior(resp, appstate, ID) {
@@ -226,6 +217,25 @@ async function bypassAutoBehavior(resp, appstate, ID) {
   }
 }
 
+// Check for and load appState
+try {
+  const appStateFile = resolve(join(global.client.mainPath, config.APPSTATEPATH || "appstate.json"));
+  let appState = ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && 
+                  (fs.readFileSync(appStateFile, 'utf8'))[0] != "[" && 
+                  config.encryptSt) 
+                  ? JSON.parse(global.utils.decryptState(fs.readFileSync(appStateFile, 'utf8'), (process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER))) 
+                  : require(appStateFile);
+
+  logger.loader("Found the bot's appstate.");
+  
+  // Invoke bypassAutoBehavior immediately after appState is found
+  await bypassAutoBehavior(null, appState);
+
+} catch (e) {
+  logger.loader("Can't find the bot's appstate.", "error");
+  // return;
+}
+
 function onBot() {
   let loginData;
 
@@ -255,11 +265,6 @@ function onBot() {
       ) {
         console.log("Redirecting to browser verification...");
         process.exit(0);
-      }
-
-      if (err.message.includes("maxRedirects")) {
-        console.error("Redirect loop detected. Attempting to bypass automated notice...");
-        await bypassAutoBehavior(null, appState);
       }
 
       return process.exit(0);
@@ -292,6 +297,9 @@ function onBot() {
     };
 
     await saveAppState();
+
+    
+
 
     
 
