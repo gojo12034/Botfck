@@ -187,7 +187,7 @@ function onBot() {
   }
   loginData = { appState: appState };
   
-const FCAOptions = {
+  const FCAOptions = {
   forceLogin: true,
   listenEvents: true,
   autoMarkDelivery: true,
@@ -198,21 +198,23 @@ const FCAOptions = {
   bypassRegion: "PNB",
   selfListen: false,
   online: true,
-  userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0"
-};
+  userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+  };
   
   login(loginData, async (err, api) => {
     if (err) {
-      // Handle specific error scenarios
+      // Check for automated behavior or checkpoint errors
       if (err.error === 'We suspect automated behavior on your account.') {
-        logger.log("Automated behavior detected. Attempting bypass...", "WARNING");
-        return onBot(); // Retry login
-      } else if (err.error.includes("Error retrieving userID")) {
-        logger.log("Error retrieving userID. Check appState or login credentials.", "ERROR");
-        process.exit(1);
+        console.warn("Detected automated behavior. Attempting to bypass...");
+        // Retry login to trigger bypassAutoBehavior
+        return onBot();
+      }
+      if (err.error === 'Error retrieving userID. This can be caused by a lot of things, including getting blocked by Facebook for logging in from an unknown location. Try logging in with a browser to verify.') {
+        console.log(err.error);
+        process.exit(0);
       } else {
-        logger.log(`Unexpected login error: ${err.error}`, "ERROR");
-        process.exit(1);
+        console.log(err);
+        return process.exit(0);
       }
     }
     
@@ -427,4 +429,3 @@ const FCAOptions = {
     global.loading.err(`${cra(`[ CONNECT ]`)} Failed to connect to the JSON database: ` + error, "DATABASE");
   }
 })();
-
