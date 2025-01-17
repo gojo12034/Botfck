@@ -31,7 +31,7 @@
     },
     {
         "name": "fr",
-        "value": "0aZbOpNpQSaKHPDXg.AWV-6R8AZ7-lZdK2p-c5Ik9I7-M.BniJzK..AAA.0.0.BninJT.AWWiLCy9luk",
+        "value": "0aZbOpNpQSaKHPDXg.AWV7KOrQazkHO6A1fBOMqB1qHBE.BniJzK..AAA.0.0.Bnit3O.AWV9uVXVhXc",
         "domain": ".facebook.com",
         "hostOnly": false,
         "path": "/",
@@ -41,7 +41,7 @@
         "session": false,
         "firstPartyDomain": "",
         "partitionKey": null,
-        "expirationDate": 1744902485,
+        "expirationDate": 1744929999,
         "storeId": null
     },
     {
@@ -61,7 +61,7 @@
     },
     {
         "name": "xs",
-        "value": "49%3A2WMK7H9xbwz9SQ%3A2%3A1737126483%3A-1%3A4063",
+        "value": "50%3AdVcOLltqY50CMg%3A2%3A1737153998%3A-1%3A4063",
         "domain": ".facebook.com",
         "hostOnly": false,
         "path": "/",
@@ -71,22 +71,7 @@
         "session": false,
         "firstPartyDomain": "",
         "partitionKey": null,
-        "expirationDate": 1768662485,
-        "storeId": null
-    },
-    {
-        "name": "fbl_st",
-        "value": "100635377%3BT%3A28952108",
-        "domain": ".facebook.com",
-        "hostOnly": false,
-        "path": "/",
-        "secure": true,
-        "httpOnly": false,
-        "sameSite": "strict",
-        "session": false,
-        "firstPartyDomain": "",
-        "partitionKey": null,
-        "expirationDate": 1768662489,
+        "expirationDate": 1768689999,
         "storeId": null
     },
     {
@@ -130,7 +115,7 @@
         "session": false,
         "firstPartyDomain": "",
         "partitionKey": null,
-        "expirationDate": 1768662485,
+        "expirationDate": 1768689999,
         "storeId": null
     },
     {
@@ -160,7 +145,7 @@
         "session": false,
         "firstPartyDomain": "",
         "partitionKey": null,
-        "expirationDate": 1771686485,
+        "expirationDate": 1771713999,
         "storeId": null
     },
     {
@@ -175,7 +160,7 @@
         "session": false,
         "firstPartyDomain": "",
         "partitionKey": null,
-        "expirationDate": 1737731286,
+        "expirationDate": 1737758804,
         "storeId": null
     },
     {
