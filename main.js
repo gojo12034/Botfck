@@ -198,8 +198,7 @@ function onBot() {
     bypassRegion: "PNB",
     selfListen: false,
     online: true,
-    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_2) AppleWebKit/600.3.18 (KHTML, like Gecko) Version/8.0.3 Safari/600.3.18"
-  };
+    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0"};
   
   login(loginData, async (err, api) => {
     if (err) {
