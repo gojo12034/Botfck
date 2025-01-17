@@ -95,7 +95,7 @@ module.exports = ({ api }) => {
           // Send the message to all group threads
           await sendMessageWithDelay(api, message, threads, 2000);
         } catch (err) {
-          console.error('Error scheduling greeting:', err);
+          console.error('Error scheduling greeting:');
         }
       },
       {
@@ -106,15 +106,19 @@ module.exports = ({ api }) => {
   });
 
   if (config.autoRestart.status) {
-    // Dynamic cron for restart based on the configured interval
-    const restartCron = `*/${config.autoRestart.time} * * * *`;
+    // Schedule the restart function to run after the greetings (e.g., after 5 minutes)
+    cron.schedule(`5 */1 * * *`, async () => {
+      const currentTime = new Date();
+      const minutes = currentTime.getHours() * 60 + currentTime.getMinutes();
 
-    cron.schedule(restartCron, async () => {
-      try {
-        console.log('Restarting system as per schedule...');
-        process.exit(1); // Gracefully restart
-      } catch (err) {
-        console.error('Error during auto-restart:', err);
+      // Check if it's the correct 100-minute interval
+      if (minutes % config.autoRestart.time === 0) {
+        try {
+          console.log('Start rebooting the system!');
+          process.exit(1);
+        } catch (err) {
+          console.error('Error during auto-restart:', err);
+        }
       }
     });
   }
