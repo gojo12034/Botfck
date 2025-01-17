@@ -187,33 +187,32 @@ function onBot() {
   }
   loginData = { appState: appState };
   
-  const FCAOptions = {
-    forceLogin: true,
-    listenEvents: true,
-    autoMarkDelivery: true,
-    autoMarkRead: true,
-    logLevel: "silent",
-    autoReconnect: true,
-    updatePresence: true,
-    bypassRegion: "PNB",
-    selfListen: false,
-    online: true,
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0"};
+const FCAOptions = {
+  forceLogin: true,
+  listenEvents: true,
+  autoMarkDelivery: true,
+  autoMarkRead: true,
+  logLevel: "silent",
+  autoReconnect: true,
+  updatePresence: true,
+  bypassRegion: "PNB",
+  selfListen: false,
+  online: true,
+  userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0"
+};
   
   login(loginData, async (err, api) => {
     if (err) {
-      // Check for automated behavior or checkpoint errors
+      // Handle specific error scenarios
       if (err.error === 'We suspect automated behavior on your account.') {
-        console.warn("Detected automated behavior. Attempting to bypass...");
-        // Retry login to trigger bypassAutoBehavior
-        return onBot();
-      }
-      if (err.error === 'Error retrieving userID. This can be caused by a lot of things, including getting blocked by Facebook for logging in from an unknown location. Try logging in with a browser to verify.') {
-        console.log(err.error);
-        process.exit(0);
+        logger.log("Automated behavior detected. Attempting bypass...", "WARNING");
+        return onBot(); // Retry login
+      } else if (err.error.includes("Error retrieving userID")) {
+        logger.log("Error retrieving userID. Check appState or login credentials.", "ERROR");
+        process.exit(1);
       } else {
-        console.log(err);
-        return process.exit(0);
+        logger.log(`Unexpected login error: ${err.error}`, "ERROR");
+        process.exit(1);
       }
     }
     
