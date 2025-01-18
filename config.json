@@ -46,7 +46,7 @@
   },
   "APPSTATEPATH": "appstate.json",
   "DEL_FUNCTION": false,
-  "ADD_FUNCTION": false,
+  "ADD_FUNCTION": true,
 
   "daily": {
     "cooldownTime": 43200000,
