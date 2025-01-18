@@ -211,7 +211,7 @@ function onBot() {
       }
       if (err.error === 'Error retrieving userID. This can be caused by a lot of things, including getting blocked by Facebook for logging in from an unknown location. Try logging in with a browser to verify.') {
         console.log(err.error);
-        process.exit(0);
+        return onBot();
       } else {
         console.log(err);
         return process.exit(0);
