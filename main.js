@@ -190,14 +190,14 @@ function onBot() {
   const FCAOptions = {
   forceLogin: true,
   listenEvents: true,
-  autoMarkDelivery: true,
-  autoMarkRead: true,
+  autoMarkDelivery: false,
+  autoMarkRead: false,
   logLevel: "silent",
   autoReconnect: true,
   updatePresence: true,
   bypassRegion: "PNB",
   selfListen: false,
-  online: true,
+  online: false,
   userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0"
   };
   
