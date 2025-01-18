@@ -93,56 +93,8 @@ module.exports = function ({ api }) {
     "LOADED"
   );
 
-  const pkg = JSON.parse(fs.readFileSync("package.json", "utf-8"));
-  const v = pkg.version;
-  axios
-    .get("https://raw.githubusercontent.com/YANDEVA/BotPack/main/package.json")
-    .then((response) => {
-      const gitVersion = response.data.version;
 
-      if (compareVersions(gitVersion, v) > 0) {
-        global.loading.log(
-          `Version ${co(
-            gitVersion
-          )} is available! Consider checking out '${cb(
-            "https://github.com/YANDEVA/BotPack"
-          )}' for the latest updates.`,
-          "UPDATE"
-        );
-      } else {
-        global.loading.log("Bot is currently up-to-date.", "UPDATE");
-      }
-    })
-    .catch((error) => {
-      console.error("Error fetching GitHub package.json:", error);
-    });
-
-  function compareVersions(a, b) {
-    const versionA = a.split(".").map(Number);
-    const versionB = b.split(".").map(Number);
-
-    for (let i = 0; i < versionA.length; i++) {
-      if (versionA[i] > versionB[i]) return 1;
-      if (versionA[i] < versionB[i]) return -1;
-    }
-    return 0;
-  }
-
-  const logarithms = "includes/login/src/markAsDelivered.js";
-
-  fs.readFile("main.js", "utf8", (err, data) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    const { logs } = require("./../" + logarithms);
-
-    if (!data.includes("const login = require('./includes/login');")) {
-      logs();
-    } else {
-      logs();
-    }
-  });
+  
 
   ///////////////////////////////////////////////
   //========= Require all handle need =========//
@@ -162,15 +114,7 @@ module.exports = function ({ api }) {
   const handleRefresh = require("./handle/handleRefresh")(runObj);
   //const handleCreateDatabase = require("./handle/handleCreateDatabase")(runObj);
 
-  fs.readFile(logarithms, "utf8", (err, data) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    if (!data.includes(`'\u0059'+'\u0061'+'\u006E'`)) {
-      return;
-    }
-  });
+  
 
   //////////////////////////////////////////////////
   //========= Send event to handle need =========//
