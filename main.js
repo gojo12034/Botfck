@@ -422,7 +422,7 @@ function listenerCallback(error, event) {
 }
 
 global.handleListen = api.listenMqtt(async (error, event) => {
-  return listenerCallback(error, event);
+  return listener(event);
 });
 
 // ___END OF EVENT & API USAGE___ //
