@@ -25,7 +25,7 @@ module.exports.run = async function ({ api, event, args }) {
   console.log("User's Message:", userMessage);
 
   try {
-    const apiUrl = `https://vneerapi.onrender.com/ai?prompt=${encodeURIComponent(userMessage)}&uid=${senderID}`;
+    const apiUrl = `https://vneerapi.onrender.com/claude?message=${encodeURIComponent(userMessage)}&uid=${senderID}`;
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
@@ -59,7 +59,7 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
   console.log("User Reply from:", senderID, "Message:", body);
 
   try {
-    const apiUrl = `https://vneerapi.onrender.com/ai?prompt=${encodeURIComponent(body)}&uid=${senderID}`;
+    const apiUrl = `https://vneerapi.onrender.com/claude?message=${encodeURIComponent(body)}&uid=${senderID}`;
     const response = await axios.get(apiUrl);
     const responseMessage = response.data.message || "Sorry, I couldn't understand that.";
 
