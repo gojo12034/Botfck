@@ -210,7 +210,7 @@ function onBot() {
         return onBot();
       } else {
         console.log(err);
-        return process.exit(1);
+        return process.exit(0);
       }
     }
     
