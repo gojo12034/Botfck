@@ -398,8 +398,8 @@ function onBot() {
     
     const listener = require('./includes/listen')({ api });
 
-global.handleListen = api.listenMqtt(async (error, event) => {
-  if (error && JSON.stringify(error).includes("601051028565049")) {
+function listenerCallback(error, event) {
+  if (JSON.stringify(error).includes("601051028565049")) {
     const form = {
       av: api.getCurrentUserID(),
       fb_api_caller_class: "RelayModern",
@@ -413,10 +413,7 @@ global.handleListen = api.listenMqtt(async (error, event) => {
       if (!e && !res.errors && res.data.fb_scraping_warning_clear.success) {
         logger("", "[ SUCCESS ] >");
         global.handleListen = api.listenMqtt(listenerCallback);
-        setTimeout(() => {
-          mqttClient.end();
-          connect_mqtt();
-        }, 1000 * 60 * 60 * 6);
+        setTimeout(() => (mqttClient.end(), connect_mqtt()), 1000 * 60 * 60 * 6);
       }
     });
   }
@@ -424,25 +421,20 @@ global.handleListen = api.listenMqtt(async (error, event) => {
   if (["presence", "typ", "read_receipt"].some((data) => data === event?.type)) return;
   if (global.config.DeveloperMode) console.log(event);
   return listener(event);
-});
-
-function listenerCallback(error, event) {
-  if (error) return; // Optional: Add error handling here if needed
-  if (["presence", "typ", "read_receipt"].some((data) => data === event?.type)) return;
-  if (global.config.DeveloperMode) console.log(event);
-  return listener(event);
 }
 
 function connect_mqtt() {
   global.handleListen = api.listenMqtt(listenerCallback);
-  setTimeout(() => {
-    mqttClient.end();
-    connect_mqtt();
-  }, 1000 * 60 * 60 * 6);
+  setTimeout(() => (mqttClient.end(), connect_mqtt()), 1000 * 60 * 60 * 6);
 }
 
 connect_mqtt();
 
+global.handleListen = api.listenMqtt(async (error, event) => {
+  return listener(event);
+});
+  });
+}
 // ___END OF EVENT & API USAGE___ //
 
 (async () => {
