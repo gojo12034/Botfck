@@ -1,13 +1,11 @@
 const axios = require('axios');
 
-let enabledThreads = {}; // Store the enabled/disabled state for each thread
-
 module.exports.config = {
   name: "chai",
-  version: "0.0.7",
+  version: "0.0.6",
   hasPermssion: 0,
   credits: "Biru Aren",
-  description: "Character AI",
+  description: "character ai",
   commandCategory: "ai",
   usePrefix: false,
   usages: "ask anything",
@@ -18,32 +16,12 @@ module.exports.config = {
 module.exports.run = async function ({ api, event, args }) {
   const { threadID, messageID, senderID } = event;
 
-  if (args[0] === "on" || args[0] === "off") {
-    // Only allow admin to enable/disable
-    if (senderID !== "61566892830295") {
-      return api.sendMessage("You don't have permission to enable/disable this command.", threadID, messageID);
-    }
-
-    // Handle enabling/disabling
-    if (args[0] === "on") {
-      enabledThreads[threadID] = true;
-      return api.sendMessage("Chai bot has been enabled in this thread.", threadID, messageID);
-    } else if (args[0] === "off") {
-      enabledThreads[threadID] = false;
-      return api.sendMessage("Chai bot has been disabled in this thread.", threadID, messageID);
-    }
-  }
-
-  // Check if the bot is enabled in the thread
-  if (!enabledThreads[threadID]) {
-    return api.sendMessage("Chai bot is disabled in this thread. Contact the admin to enable it.", threadID, messageID);
-  }
-
   if (!args.length) {
     return api.sendMessage("I don't accept blank messages!", threadID, messageID);
   }
 
   const userMessage = args.join(" ");
+
   console.log("User's Message:", userMessage);
 
   try {
@@ -63,11 +41,11 @@ module.exports.run = async function ({ api, event, args }) {
         global.client.handleReply.push({
           name: this.config.name,
           messageID: info.messageID,
-          author: senderID,
+          author: senderID, // Original sender
           type: "reply"
         });
       },
-      messageID
+      messageID // Reply to the original message
     );
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
@@ -77,9 +55,6 @@ module.exports.run = async function ({ api, event, args }) {
 
 module.exports.handleReply = async function ({ api, event, handleReply }) {
   const { threadID, messageID, senderID, body } = event;
-
-  // Check if the bot is enabled in the thread
-  if (!enabledThreads[threadID]) return;
 
   console.log("User Reply from:", senderID, "Message:", body);
 
@@ -100,11 +75,11 @@ module.exports.handleReply = async function ({ api, event, handleReply }) {
         global.client.handleReply.push({
           name: this.config.name,
           messageID: info.messageID,
-          author: senderID,
+          author: senderID, // Update to replying user's ID
           type: "reply"
         });
       },
-      messageID
+      messageID // Reply to the original message
     );
   } catch (error) {
     console.error("Error communicating with the API:", error.message);
