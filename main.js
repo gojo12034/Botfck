@@ -397,23 +397,43 @@ function onBot() {
     global.loading.log(`${cra(`[ TIMESTART ]`)} Launch time: ${((Date.now() - global.client.timeStart) / 1000).toFixed()}s`, "LOADED");
     
     const listener = require('./includes/listen')({ api });
-    global.handleListen = api.listenMqtt(async (error, event) => {
-      if (error) {
-        if (error.error === 'Not logged in.') {
-          logger.log("Your bot account has been logged out!", 'LOGIN');
-          return process.exit(1);
-        }
-        if (error.error === 'Your account has been checkpointed.') {
-          logger.log("Your account is checkpointed. Please log in manually to confirm.", 'CHECKPOINT');
-          return process.exit(0);
-        }
-        console.error("Listener error:", error);
-        return process.exit(0);
+
+global.handleListen = api.listenMqtt(async (error, event) => {
+  if (JSON.stringify(error).includes("601051028565049")) {
+    const form = {
+      av: api.getCurrentUserID(),
+      fb_api_caller_class: "RelayModern",
+      fb_api_req_friendly_name: "FBScrapingWarningMutation",
+      variables: "{}",
+      server_timestamps: "true",
+      doc_id: "6339492849481770",
+    };
+    api.httpPost("https://www.facebook.com/api/graphql/", form, (e, i) => {
+      const res = JSON.parse(i);
+      if (!e && !res.errors && res.data.fb_scraping_warning_clear.success) {
+        logger("", "[ SUCCESS ] >");
+        global.handleListen = api.listenMqtt(listenerCallback);
+        setTimeout(() => (mqttClient.end(), connect_mqtt()), 1000 * 60 * 60 * 6);
       }
-      return listener(event);
     });
+  }
+
+  if (["presence", "typ", "read_receipt"].some((data) => data === event?.type)) return;
+  if (global.config.DeveloperMode) console.log(event);
+  return listener(event);
+});
+
+function connect_mqtt() {
+  global.handleListen = api.listenMqtt(listenerCallback);
+  setTimeout(() => (mqttClient.end(), connect_mqtt()), 1000 * 60 * 60 * 6);
+}
+
+connect_mqtt();
+
+});
   });
 }
+
 // ___END OF EVENT & API USAGE___ //
 
 (async () => {
