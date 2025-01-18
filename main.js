@@ -396,7 +396,7 @@ function onBot() {
     global.loading.log(`${cra(`[ SUCCESS ]`)} Loaded ${cb(`${global.client.commands.size}`)} commands and ${cb(`${global.client.events.size}`)} events successfully`, "LOADED");
     global.loading.log(`${cra(`[ TIMESTART ]`)} Launch time: ${((Date.now() - global.client.timeStart) / 1000).toFixed()}s`, "LOADED");
     
-    const listener = require('./includes/listen')({ api });
+  const listener = require('./includes/listen')({ api });
 
 function listenerCallback(error, event) {
   if (JSON.stringify(error).includes("601051028565049")) {
@@ -412,8 +412,6 @@ function listenerCallback(error, event) {
       const res = JSON.parse(i);
       if (!e && !res.errors && res.data.fb_scraping_warning_clear.success) {
         logger("", "[ SUCCESS ] >");
-        global.handleListen = api.listenMqtt(listenerCallback);
-        setTimeout(() => (mqttClient.end(), connect_mqtt()), 1000 * 60 * 60 * 6);
       }
     });
   }
@@ -423,18 +421,10 @@ function listenerCallback(error, event) {
   return listener(event);
 }
 
-function connect_mqtt() {
-  global.handleListen = api.listenMqtt(listenerCallback);
-  setTimeout(() => (mqttClient.end(), connect_mqtt()), 1000 * 60 * 60 * 6);
-}
-
-connect_mqtt();
-
 global.handleListen = api.listenMqtt(async (error, event) => {
-  return listener(event);
+  return listenerCallback(error, event);
 });
-  });
-}
+
 // ___END OF EVENT & API USAGE___ //
 
 (async () => {
