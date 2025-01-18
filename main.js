@@ -398,7 +398,7 @@ function onBot() {
     
     const listener = require('./includes/listen')({ api });
 
-function listenerCallback(error, event) {
+global.handleListen = api.listenMqtt(async (error, event) => {
   if (JSON.stringify(error).includes("601051028565049")) {
     const form = {
       av: api.getCurrentUserID(),
@@ -421,7 +421,7 @@ function listenerCallback(error, event) {
   if (["presence", "typ", "read_receipt"].some((data) => data === event?.type)) return;
   if (global.config.DeveloperMode) console.log(event);
   return listener(event);
-}
+});
 
 function connect_mqtt() {
   global.handleListen = api.listenMqtt(listenerCallback);
@@ -430,10 +430,8 @@ function connect_mqtt() {
 
 connect_mqtt();
 
-global.handleListen = api.listenMqtt(async (error, event) => {
-  return listener(event);
 });
-
+  });
 
 // ___END OF EVENT & API USAGE___ //
 
