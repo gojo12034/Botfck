@@ -7,14 +7,14 @@
   "autoCreateDB": false,
   "allowInbox": false,
   "autoClean": true,
-  "email": "09953888149",
-  "password": "biruaren-2003",
+  "email": "",
+  "password": "",
   "adminOnly": false,
   "autoCensor": false,
   "encryptSt": false,
   "removeSt": false,
   "UPDATE": {
-    "Package": false,
+    "Package": true,
     "EXCLUDED": [
       "chalk",
       "mqtt",
@@ -46,7 +46,7 @@
   },
   "APPSTATEPATH": "appstate.json",
   "DEL_FUNCTION": false,
-  "ADD_FUNCTION": true,
+  "ADD_FUNCTION": false,
 
   "daily": {
     "cooldownTime": 43200000,
