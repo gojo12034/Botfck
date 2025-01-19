@@ -111,7 +111,7 @@ module.exports = function ({ api }) {
   const handleReply = require("./handle/handleReply")(runObj);
   const handleReaction = require("./handle/handleReaction")(runObj);
   const handleEvent = require("./handle/handleEvent")(runObj);
-  const handleRefresh = require("./handle/handleRefresh")(runObj);
+  //const handleRefresh = require("./handle/handleRefresh")(runObj);
   //const handleCreateDatabase = require("./handle/handleCreateDatabase")(runObj);
 
   
