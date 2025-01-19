@@ -263,6 +263,7 @@ async function handleApiSetup(api, options) {
   };
 
   await saveAppState();
+}
 
     global.account.cookie = fbstate.map(i => i = i.key + "=" + i.value).join(";");
     global.client.api = api
