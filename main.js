@@ -448,7 +448,7 @@ async function handleApiSetup(api, options) {
       }
       return listener(event);
     });
-  });
+  };
 }
 
 
