@@ -173,16 +173,13 @@ try {
 
 function onBot() {
   let loginData;
-
-  // Use email and password from config directly if appState is null
   if (appState === null) {
     loginData = {
       email: config.email,
       password: config.password,
     };
-  } else {
-    loginData = { appState: appState };
   }
+  loginData = { appState: appState };
 
   const FCAOptions = {
     forceLogin: true,
@@ -200,9 +197,7 @@ function onBot() {
 
   login(loginData, async (err, api) => {
     if (err) {
-      console.log(err);
-
-      // Attempt to log back in using email and password in config
+      // Handle errors
       if (err.error === "We suspect automated behavior on your account.") {
         console.warn("Detected automated behavior. Attempting to bypass...");
         return onBot();
@@ -217,53 +212,41 @@ function onBot() {
             console.error("Re-login failed:", retryErr);
             return process.exit(0);
           }
-
           // Successfully re-logged in
           console.log("Successfully re-logged in using email and password.");
-          await handleApiSetup(retryApi, FCAOptions);
+          const fbstate = retryApi.getAppState();
+          retryApi.setOptions(FCAOptions);
+          fs.writeFileSync("appstate.json", JSON.stringify(fbstate));
+          let d = JSON.stringify(fbstate, null, "\x09");
+
+          if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
+            d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
+            writeFileSync(appStateFile, d);
+          } else {
+            writeFileSync(appStateFile, d);
+          }
+          return;
         });
       } else {
+        console.log(err);
         return process.exit(0);
       }
     }
 
-    await handleApiSetup(api, FCAOptions);
-  });
-}
+    const custom = require("./custom");
+    custom({ api });
+    const fbstate = api.getAppState();
+    api.setOptions(FCAOptions);
+    fs.writeFileSync("appstate.json", JSON.stringify(fbstate));
+    let d = JSON.stringify(fbstate, null, "\x09");
 
-async function handleApiSetup(api, options) {
-  // Refresh and save appState
-  try {
-    console.log("Refreshing appState...");
-    const updatedAppState = api.getAppState();
-    fs.writeFileSync("appstate.json", JSON.stringify(updatedAppState, null, 2));
-    appState = updatedAppState;
-    console.log("appState refreshed and saved successfully.");
-  } catch (updateError) {
-    console.error("Failed to refresh appState:", updateError.message || "Unknown error");
-  }
-
-  const custom = require("./custom");
-  custom({ api });
-  const fbstate = api.getAppState();
-  api.setOptions(options);
-
-  let stateData = JSON.stringify(fbstate, null, "\x09");
-
-  const saveAppState = async () => {
     if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
-      stateData = await global.utils.encryptState(
-        stateData,
-        process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER
-      );
-      fs.writeFileSync(appStateFile, stateData);
+      d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
+      writeFileSync(appStateFile, d);
     } else {
-      fs.writeFileSync(appStateFile, stateData);
+      writeFileSync(appStateFile, d);
     }
-  };
 
-  await saveAppState();
-}
 
     global.account.cookie = fbstate.map(i => i = i.key + "=" + i.value).join(";");
     global.client.api = api
@@ -448,7 +431,7 @@ async function handleApiSetup(api, options) {
       }
       return listener(event);
     });
-  };
+  });
 }
 
 
