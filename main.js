@@ -185,7 +185,7 @@ try {
   }
 
   const FCAOptions = {
-    forceLogin: true,
+    forceLogin: false,
     listenEvents: true,
     autoMarkDelivery: false,
     autoMarkRead: false,
