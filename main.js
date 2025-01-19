@@ -170,8 +170,7 @@ try {
   logger.loader("Can't find the bot's appstate.", "error");
  // return;
 }
-
-
+  
   function onBot() {
   let loginData;
 
@@ -199,58 +198,53 @@ try {
     userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_2) AppleWebKit/600.3.18 (KHTML, like Gecko) Version/8.0.3 Safari/600.3.18",
   };
 
-  login(loginData, async (err, api) => {
+  login(loginData, (err, api) => {
     if (err) {
-      // Check for automated behavior or checkpoint errors
-      if (err.error === "We suspect automated behavior on your account.") {
-        console.warn("Detected automated behavior. Attempting to bypass...");
-        return onBot();
-      } else if (!appState && config.email && config.password) {
-        console.warn("Error encountered. Attempting re-login with email and password...");
-        loginData = {
-          email: config.email,
-          password: config.password,
-        };
-
-        return login(loginData, async (retryErr, retryApi) => {
-          if (retryErr) {
-            console.error("Re-login failed:", retryErr);
-            return process.exit(0);
-          }
-
-          // Successfully re-logged in
-          console.log("Successfully re-logged in using email and password.");
-
-          // Refresh and save appState after re-login
-          try {
-            console.log("Refreshing appState...");
-            const updatedAppState = retryApi.getAppState();
-            fs.writeFileSync("appstate.json", JSON.stringify(updatedAppState, null, 2));
-            appState = updatedAppState;
-            console.log("appState refreshed and saved successfully.");
-          } catch (updateError) {
-            console.error("Failed to refresh appState:", updateError.message || "Unknown error");
-          }
-
-          const custom = require("./custom");
-          custom({ api: retryApi });
-          retryApi.setOptions(FCAOptions);
-
-          let d = JSON.stringify(updatedAppState, null, "\x09");
-
-          const saveAppState = async () => {
-            if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
-              d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
-              fs.writeFileSync(appStateFile, d);
-            } else {
-              fs.writeFileSync(appStateFile, d);
+      // Handle error and retry login with email/password
+      if (!appState && config.email && config.password) {
+        console.warn("Initial login failed. Retrying with email and password...");
+        return login(
+          { email: config.email, password: config.password },
+          (retryErr, retryApi) => {
+            if (retryErr) {
+              console.error("Re-login failed:", retryErr);
+              return process.exit(0);
             }
-          };
 
-          await saveAppState();
-        });
+            // Successfully re-logged in
+            console.log("Successfully re-logged in using email and password.");
+
+            // Refresh and save appState after re-login
+            try {
+              console.log("Refreshing appState...");
+              const updatedAppState = retryApi.getAppState();
+              fs.writeFileSync("appstate.json", JSON.stringify(updatedAppState, null, 2));
+              appState = updatedAppState;
+              console.log("appState refreshed and saved successfully.");
+            } catch (updateError) {
+              console.error("Failed to refresh appState:", updateError.message || "Unknown error");
+            }
+
+            const custom = require("./custom");
+            custom({ api: retryApi });
+            retryApi.setOptions(FCAOptions);
+
+            let d = JSON.stringify(appState, null, "\x09");
+
+            const saveAppState = async () => {
+              if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
+                d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
+                fs.writeFileSync(appStateFile, d);
+              } else {
+                fs.writeFileSync(appStateFile, d);
+              }
+            };
+
+            saveAppState();
+          }
+        );
       } else {
-        console.log(err);
+        console.error("Login failed:", err);
         return process.exit(0);
       }
     }
@@ -282,11 +276,10 @@ try {
       }
     };
 
-    await saveAppState();
+    saveAppState();
   
 
-      
-
+  
           
     global.account.cookie = fbstate.map(i => i = i.key + "=" + i.value).join(";");
     global.client.api = api
