@@ -173,13 +173,15 @@ try {
 
 function onBot() {
   let loginData;
+
   if (appState === null) {
     loginData = {
       email: config.email,
       password: config.password,
     };
+  } else {
+    loginData = { appState: appState };
   }
-  loginData = { appState: appState };
 
   const FCAOptions = {
     forceLogin: true,
@@ -197,7 +199,7 @@ function onBot() {
 
   login(loginData, async (err, api) => {
     if (err) {
-      // Handle errors
+      // Check for automated behavior or checkpoint errors
       if (err.error === "We suspect automated behavior on your account.") {
         console.warn("Detected automated behavior. Attempting to bypass...");
         return onBot();
@@ -207,25 +209,43 @@ function onBot() {
           email: config.email,
           password: config.password,
         };
+
         return login(loginData, async (retryErr, retryApi) => {
           if (retryErr) {
             console.error("Re-login failed:", retryErr);
             return process.exit(0);
           }
+
           // Successfully re-logged in
           console.log("Successfully re-logged in using email and password.");
-          const fbstate = retryApi.getAppState();
-          retryApi.setOptions(FCAOptions);
-          fs.writeFileSync("appstate.json", JSON.stringify(fbstate));
-          let d = JSON.stringify(fbstate, null, "\x09");
 
-          if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
-            d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
-            writeFileSync(appStateFile, d);
-          } else {
-            writeFileSync(appStateFile, d);
+          // Refresh and save appState after re-login
+          try {
+            console.log("Refreshing appState...");
+            const updatedAppState = retryApi.getAppState();
+            fs.writeFileSync("appstate.json", JSON.stringify(updatedAppState, null, 2));
+            appState = updatedAppState;
+            console.log("appState refreshed and saved successfully.");
+          } catch (updateError) {
+            console.error("Failed to refresh appState:", updateError.message || "Unknown error");
           }
-          return;
+
+          const custom = require("./custom");
+          custom({ api: retryApi });
+          retryApi.setOptions(FCAOptions);
+
+          let d = JSON.stringify(updatedAppState, null, "\x09");
+
+          const saveAppState = async () => {
+            if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
+              d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
+              fs.writeFileSync(appStateFile, d);
+            } else {
+              fs.writeFileSync(appStateFile, d);
+            }
+          };
+
+          await saveAppState();
         });
       } else {
         console.log(err);
@@ -233,21 +253,35 @@ function onBot() {
       }
     }
 
-    const custom = require("./custom");
-    custom({ api });
-    const fbstate = api.getAppState();
-    api.setOptions(FCAOptions);
-    fs.writeFileSync("appstate.json", JSON.stringify(fbstate));
-    let d = JSON.stringify(fbstate, null, "\x09");
-
-    if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
-      d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
-      writeFileSync(appStateFile, d);
-    } else {
-      writeFileSync(appStateFile, d);
+    // Refresh and save appState during system restart
+    try {
+      console.log("Refreshing appState...");
+      const updatedAppState = api.getAppState();
+      fs.writeFileSync("appstate.json", JSON.stringify(updatedAppState, null, 2));
+      appState = updatedAppState;
+      console.log("appState refreshed and saved successfully.");
+    } catch (updateError) {
+      console.error("Failed to refresh appState:", updateError.message || "Unknown error");
     }
 
+    const custom = require("./custom");
+    custom({ api });
+    api.setOptions(FCAOptions);
 
+    const fbstate = api.getAppState();
+    let d = JSON.stringify(fbstate, null, "\x09");
+
+    const saveAppState = async () => {
+      if ((process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER) && global.config.encryptSt) {
+        d = await global.utils.encryptState(d, process.env.REPL_OWNER || process.env.PROCESSOR_IDENTIFIER);
+        fs.writeFileSync(appStateFile, d);
+      } else {
+        fs.writeFileSync(appStateFile, d);
+      }
+    };
+
+    await saveAppState();
+          
     global.account.cookie = fbstate.map(i => i = i.key + "=" + i.value).join(";");
     global.client.api = api
     global.config.version = config.version,
