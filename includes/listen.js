@@ -141,7 +141,7 @@ module.exports = function ({ api }) {
         break;
       case "event":
         handleEvent(listenObj);
-        handleRefresh(listenObj);
+        //handleRefresh(listenObj);
         break;
       case "message_reaction":
         handleReaction(listenObj);
