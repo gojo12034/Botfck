@@ -32,7 +32,7 @@ const sendMessageWithDelay = async (api, message, threads, delay = 2000) => {
       await api.sendMessage(message, thread.threadID);
       await new Promise((resolve) => setTimeout(resolve, delay)); // Wait before sending to the next thread
     } catch (err) {
-      console.error(`Error sending message to thread ${thread.threadID}:`, err);
+      console.error(`Error sending message to thread ${thread.threadID}:`, err.message);
     }
   }
 };
@@ -88,14 +88,18 @@ module.exports = ({ api }) => {
               : greeting.messages[0];
 
           // Get all threads from the inbox and filter only group threads
-          const threads = (await api.getThreadList(20, null, ['INBOX'])).filter(
-            (thread) => thread.isGroup === true
-          );
+          const threads = (await api.getThreadList(20, null, ['INBOX']))
+            .filter((thread) => thread.isGroup === true);
+
+          if (threads.length === 0) {
+            console.log('No group threads found.');
+            return;
+          }
 
           // Send the message to all group threads
           await sendMessageWithDelay(api, message, threads, 2000);
         } catch (err) {
-          console.error('Error scheduling greeting:');
+          console.error('Error scheduling greeting:', err.message);
         }
       },
       {
@@ -106,19 +110,12 @@ module.exports = ({ api }) => {
   });
 
   if (config.autoRestart.status) {
-    // Schedule the restart function to run after the greetings (e.g., after 5 minutes)
-    cron.schedule(`5 */1 * * *`, async () => {
-      const currentTime = new Date();
-      const minutes = currentTime.getHours() * 60 + currentTime.getMinutes();
-
-      // Check if it's the correct 100-minute interval
-      if (minutes % config.autoRestart.time === 0) {
-        try {
-          console.log('Start rebooting the system!');
-          process.exit(1);
-        } catch (err) {
-          console.error('Error during auto-restart:', err);
-        }
+    cron.schedule(`*/${config.autoRestart.time} * * * *`, () => {
+      try {
+        console.log('Auto-restarting the bot...');
+        process.exit(0); // Exit with success code to allow restart
+      } catch (err) {
+        console.error('Error during auto-restart:', err.message);
       }
     });
   }
