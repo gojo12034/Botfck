@@ -113,7 +113,7 @@ module.exports = ({ api }) => {
     cron.schedule(`*/${config.autoRestart.time} * * * *`, () => {
       try {
         console.log('Auto-restarting the bot...');
-        process.exit(0); // Exit with success code to allow restart
+        process.exit(1); // Exit with success code to allow restart
       } catch (err) {
         console.error('Error during auto-restart:', err.message);
       }
