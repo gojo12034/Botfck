@@ -20,17 +20,25 @@ const config = {
 // Helper function for downloading audio file
 async function downloadAudio(url, filePath) {
     const writer = fs.createWriteStream(filePath);
-    const response = await axios({
-        url,
-        method: 'GET',
-        responseType: 'stream'
-    });
+    try {
+        const response = await axios({
+            url,
+            method: 'GET',
+            responseType: 'stream',
+        });
 
-    return new Promise((resolve, reject) => {
-        response.data.pipe(writer);
-        writer.on('finish', resolve);
-        writer.on('error', reject);
-    });
+        return new Promise((resolve, reject) => {
+            response.data.pipe(writer);
+            writer.on('finish', resolve);
+            writer.on('error', (err) => {
+                console.error("Error writing audio file:", err);
+                reject(err);
+            });
+        });
+    } catch (error) {
+        console.error("Error downloading audio:", error.message);
+        throw new Error("Failed to download audio.");
+    }
 }
 
 // Main function to handle the command
@@ -71,7 +79,7 @@ async function playMusic({ api, event, args }) {
         });
 
     } catch (error) {
-        console.error("Error:", error);
+        console.error("Error while searching for videos:", error.message);
         api.sendMessage("An error occurred while searching for the video.", event.threadID, event.messageID);
         api.setMessageReaction("❌", event.messageID, () => {}, true);
     }
@@ -94,25 +102,35 @@ async function handleReply({ api, event, handleReply }) {
     api.sendMessage(`Downloading "${video.title}" as audio...`, event.threadID, event.messageID);
 
     try {
-        // Fetch video download information from the provided API
+        // Fetch video download information from the new API
         const apiUrl = `https://api.fabdl.com/youtube/get?url=https://youtu.be/${videoId}`;
-        const response = await axios.get(apiUrl);
-        const audio = response.data.audios?.find(a => a.type === "m4a");
+        const response = await axios.get(apiUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+            }
+        });
 
-        if (!audio || !audio.url) {
-            return api.sendMessage("Failed to fetch the download link.", event.threadID, event.messageID);
+        if (response.status !== 200) {
+            console.error("Unexpected API response status:", response.status, response.data);
+            throw new Error("Failed to fetch video data from API.");
         }
 
-        const { url } = audio;
+        const { title, audios } = response.data.result;
+        const audio = audios.find(a => a.type === 'm4a');
+
+        if (!audio) {
+            console.error("No valid audio found in API response:", response.data);
+            throw new Error("No audio found for the selected video.");
+        }
 
         // Download the audio file
         const cachePath = path.join(__dirname, "cache", `music_${videoId}.m4a`);
-        await downloadAudio(url, cachePath);
+        await downloadAudio(audio.url, cachePath);
 
         // Send the audio to the user
         const audioStream = fs.createReadStream(cachePath);
         api.sendMessage({
-            body: `🎵 Now playing: ${video.title}`,
+            body: `🎵 Now playing: ${title}`,
             attachment: audioStream
         }, event.threadID, () => {
             fs.unlinkSync(cachePath); // Delete the file after sending
@@ -120,7 +138,7 @@ async function handleReply({ api, event, handleReply }) {
 
         api.setMessageReaction("✅", event.messageID, () => {}, true);
     } catch (error) {
-        console.error("Error:", error);
+        console.error("Error in handleReply:", error.message);
         api.sendMessage("An error occurred while trying to play the song.", event.threadID, event.messageID);
         api.setMessageReaction("❌", event.messageID, () => {}, true);
     }
