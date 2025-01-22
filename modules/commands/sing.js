@@ -94,23 +94,25 @@ async function handleReply({ api, event, handleReply }) {
     api.sendMessage(`Downloading "${video.title}" as audio...`, event.threadID, event.messageID);
 
     try {
-        // Fetch video download information from the external API
-        const apiUrl = `https://vneerapi.onrender.com/ytmp3?url=https://youtu.be/${videoId}`;
+        // Fetch video download information from the provided API
+        const apiUrl = `https://api.fabdl.com/youtube/get?url=https://youtu.be/${videoId}`;
         const response = await axios.get(apiUrl);
-        const { title, downloadUrl } = response.data;
+        const audio = response.data.audios?.find(a => a.type === "m4a");
 
-        if (!downloadUrl) {
+        if (!audio || !audio.url) {
             return api.sendMessage("Failed to fetch the download link.", event.threadID, event.messageID);
         }
 
+        const { url } = audio;
+
         // Download the audio file
-        const cachePath = path.join(__dirname, "cache", `music_${videoId}.mp3`);
-        await downloadAudio(downloadUrl, cachePath);
+        const cachePath = path.join(__dirname, "cache", `music_${videoId}.m4a`);
+        await downloadAudio(url, cachePath);
 
         // Send the audio to the user
         const audioStream = fs.createReadStream(cachePath);
         api.sendMessage({
-            body: `🎵 Now playing: ${title}`,
+            body: `🎵 Now playing: ${video.title}`,
             attachment: audioStream
         }, event.threadID, () => {
             fs.unlinkSync(cachePath); // Delete the file after sending
