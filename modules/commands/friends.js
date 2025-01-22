@@ -1,7 +1,7 @@
 module.exports.config = {
   name: "friends",
   version: "1.0.0",
-  hasPermssion: 1,
+  hasPermssion: 2,
   credits: "ryuko",
   description: "list friends",
   usePrefix: true,
