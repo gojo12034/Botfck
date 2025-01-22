@@ -24,19 +24,16 @@ async function downloadAudio(url, filePath) {
         const response = await axios({
             url,
             method: 'GET',
-            responseType: 'stream',
+            responseType: 'stream'
         });
 
         return new Promise((resolve, reject) => {
             response.data.pipe(writer);
             writer.on('finish', resolve);
-            writer.on('error', (err) => {
-                console.error("Error writing audio file:", err);
-                reject(err);
-            });
+            writer.on('error', reject);
         });
     } catch (error) {
-        console.error("Error downloading audio:", error.message);
+        console.error("Error during downloading audio:", error);
         throw new Error("Failed to download audio.");
     }
 }
@@ -79,7 +76,7 @@ async function playMusic({ api, event, args }) {
         });
 
     } catch (error) {
-        console.error("Error while searching for videos:", error.message);
+        console.error("Error during YouTube search:", error);
         api.sendMessage("An error occurred while searching for the video.", event.threadID, event.messageID);
         api.setMessageReaction("❌", event.messageID, () => {}, true);
     }
@@ -103,29 +100,24 @@ async function handleReply({ api, event, handleReply }) {
 
     try {
         // Fetch video download information from the new API
-        const apiUrl = `https://api.fabdl.com/youtube/get?url=https://youtu.be/${videoId}`;
+        const apiUrl = `https://vneerapi.onrender.com/ytmp3?url=https://youtu.be/${videoId}`;
         const response = await axios.get(apiUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
             }
         });
 
-        if (response.status !== 200) {
-            console.error("Unexpected API response status:", response.status, response.data);
-            throw new Error("Failed to fetch video data from API.");
+        if (!response.data || !response.data.audio || !response.data.audio.url) {
+            console.error("Invalid response from API:", response.data);
+            return api.sendMessage("Failed to fetch audio download link from the API.", event.threadID, event.messageID);
         }
 
-        const { title, audios } = response.data.result;
-        const audio = audios.find(a => a.type === 'm4a');
-
-        if (!audio) {
-            console.error("No valid audio found in API response:", response.data);
-            throw new Error("No audio found for the selected video.");
-        }
+        const { title } = response.data;
+        const audioUrl = response.data.audio.url;
 
         // Download the audio file
         const cachePath = path.join(__dirname, "cache", `music_${videoId}.m4a`);
-        await downloadAudio(audio.url, cachePath);
+        await downloadAudio(audioUrl, cachePath);
 
         // Send the audio to the user
         const audioStream = fs.createReadStream(cachePath);
@@ -138,7 +130,7 @@ async function handleReply({ api, event, handleReply }) {
 
         api.setMessageReaction("✅", event.messageID, () => {}, true);
     } catch (error) {
-        console.error("Error in handleReply:", error.message);
+        console.error("Error during downloading or sending audio:", error);
         api.sendMessage("An error occurred while trying to play the song.", event.threadID, event.messageID);
         api.setMessageReaction("❌", event.messageID, () => {}, true);
     }
