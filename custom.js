@@ -30,6 +30,7 @@ const sendMessageWithDelay = async (api, message, threads, delay = 2000) => {
   for (const thread of threads) {
     try {
       await api.sendMessage(message, thread.threadID);
+      console.log(`Message sent to thread ${thread.threadID}`);
       await new Promise((resolve) => setTimeout(resolve, delay)); // Wait before sending to the next thread
     } catch (err) {
       console.error(`Error sending message to thread ${thread.threadID}:`, err.message);
@@ -87,8 +88,10 @@ module.exports = ({ api }) => {
               ? await greeting.messages()
               : greeting.messages[0];
 
+          console.log(`Sending message: "${message}"`);
+
           // Get all threads from the inbox and filter only group threads
-          const threads = (await api.getThreadList(20, null, ['INBOX']))
+          const threads = (await api.getThreadList(50, null, ['INBOX']))
             .filter((thread) => thread.isGroup === true);
 
           if (threads.length === 0) {
@@ -96,7 +99,7 @@ module.exports = ({ api }) => {
             return;
           }
 
-          // Send the message to all group threads
+          console.log(`Found ${threads.length} group threads.`);
           await sendMessageWithDelay(api, message, threads, 2000);
         } catch (err) {
           console.error('Error scheduling greeting:', err.message);
