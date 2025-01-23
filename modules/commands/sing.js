@@ -17,7 +17,9 @@ const config = {
     cooldowns: 15,
 };
 
-// Helper function for downloading audio file with custom User-Agent
+const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36';
+
+// Helper function for downloading audio file
 async function downloadAudio(url, filePath) {
     console.log(`Starting download from URL: ${url}`);
     const writer = fs.createWriteStream(filePath);
@@ -26,8 +28,8 @@ async function downloadAudio(url, filePath) {
         method: 'GET',
         responseType: 'stream',
         headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
+            "User-Agent": userAgent,
+        },
     });
 
     return new Promise((resolve, reject) => {
@@ -104,24 +106,41 @@ async function handleReply({ api, event, handleReply }) {
     api.sendMessage(`Fetching "${video.title}" as audio...`, event.threadID, event.messageID);
 
     try {
-        // Fetch video download information from the new API with custom User-Agent
-        const apiUrl = `https://vneerapi.onrender.com/ytdown?url=https://youtu.be/${videoId}`;
-        console.log(`Requesting video details from API: ${apiUrl}`);
-        
-        const response = await axios.get(apiUrl, {
+        // Step 1: Request MP3 download
+        const downloadResponse = await axios({
+            method: 'GET',
+            url: `https://p.oceansaver.in/ajax/download.php?copyright=0&format=mp3&url=https://youtu.be/${videoId}`,
             headers: {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-            }
+                'User-Agent': userAgent,
+            },
         });
 
-        console.log(`API Response:`, response.data);
+        const downloadData = downloadResponse.data;
+        console.log("Download Response:", downloadData);
 
-        const { title, thumbnail, downloadUrl } = response.data;
-
-        if (!downloadUrl) {
-            console.error(`API did not return a download URL.`);
-            return api.sendMessage("Failed to fetch the download link.", event.threadID, event.messageID);
+        if (!downloadData.success || !downloadData.id) {
+            return api.sendMessage("Failed to initiate the download process.", event.threadID, event.messageID);
         }
+
+        const { id, info } = downloadData;
+
+        // Step 2: Check progress and get final download URL
+        const progressResponse = await axios({
+            method: 'GET',
+            url: `https://p.oceansaver.in/ajax/progress.php?id=${id}`,
+            headers: {
+                'User-Agent': userAgent,
+            },
+        });
+
+        const progressData = progressResponse.data;
+        console.log("Progress Response:", progressData);
+
+        if (!progressData.success || !progressData.download_url) {
+            return api.sendMessage("Failed to fetch the download URL.", event.threadID, event.messageID);
+        }
+
+        const { download_url: downloadUrl } = progressData;
 
         // Download the audio file
         const cachePath = path.join(__dirname, "cache", `music_${videoId}.mp3`);
@@ -130,8 +149,8 @@ async function handleReply({ api, event, handleReply }) {
         // Send the audio to the user
         const audioStream = fs.createReadStream(cachePath);
         api.sendMessage({
-            body: `🎵 Now playing: ${title}`,
-            attachment: audioStream
+            body: `🎵 Now playing: ${info.title}`,
+            attachment: audioStream,
         }, event.threadID, () => {
             fs.unlinkSync(cachePath); // Delete the file after sending
         }, event.messageID);
