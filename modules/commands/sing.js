@@ -17,7 +17,19 @@ const config = {
     cooldowns: 15,
 };
 
-const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36';
+// Pool of User-Agents for randomization
+const userAgents = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/92.0.902.73 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:89.0) Gecko/20100101 Firefox/89.0',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1',
+];
+
+// Helper function to pick a random User-Agent
+function getRandomUserAgent() {
+    return userAgents[Math.floor(Math.random() * userAgents.length)];
+}
 
 // Helper function for downloading audio file
 async function downloadAudio(url, filePath) {
@@ -28,7 +40,7 @@ async function downloadAudio(url, filePath) {
         method: 'GET',
         responseType: 'stream',
         headers: {
-            "User-Agent": userAgent,
+            "User-Agent": getRandomUserAgent(),
         },
     });
 
@@ -106,17 +118,19 @@ async function handleReply({ api, event, handleReply }) {
     api.sendMessage(`Fetching "${video.title}" as audio...`, event.threadID, event.messageID);
 
     try {
+        console.log(`Video ID: ${videoId}`);
+
         // Step 1: Request MP3 download
         const downloadResponse = await axios({
             method: 'GET',
             url: `https://p.oceansaver.in/ajax/download.php?copyright=0&format=mp3&url=https://youtu.be/${videoId}`,
             headers: {
-                'User-Agent': userAgent,
+                'User-Agent': getRandomUserAgent(),
             },
         });
 
         const downloadData = downloadResponse.data;
-        console.log("Download Response:", downloadData);
+        console.log(`Download Response for Video ID ${videoId}:`, downloadData);
 
         if (!downloadData.success || !downloadData.id) {
             return api.sendMessage("Failed to initiate the download process.", event.threadID, event.messageID);
@@ -129,12 +143,12 @@ async function handleReply({ api, event, handleReply }) {
             method: 'GET',
             url: `https://p.oceansaver.in/ajax/progress.php?id=${id}`,
             headers: {
-                'User-Agent': userAgent,
+                'User-Agent': getRandomUserAgent(),
             },
         });
 
         const progressData = progressResponse.data;
-        console.log("Progress Response:", progressData);
+        console.log(`Progress Response for Download ID ${id}:`, progressData);
 
         if (!progressData.success || !progressData.download_url) {
             return api.sendMessage("Failed to fetch the download URL.", event.threadID, event.messageID);
