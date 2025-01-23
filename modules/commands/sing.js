@@ -17,19 +17,29 @@ const config = {
     cooldowns: 15,
 };
 
-// Helper function for downloading audio file
+// Helper function for downloading audio file with custom User-Agent
 async function downloadAudio(url, filePath) {
+    console.log(`Starting download from URL: ${url}`);
     const writer = fs.createWriteStream(filePath);
     const response = await axios({
         url,
         method: 'GET',
-        responseType: 'stream'
+        responseType: 'stream',
+        headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
     });
 
     return new Promise((resolve, reject) => {
         response.data.pipe(writer);
-        writer.on('finish', resolve);
-        writer.on('error', reject);
+        writer.on('finish', () => {
+            console.log(`Audio downloaded to: ${filePath}`);
+            resolve();
+        });
+        writer.on('error', (error) => {
+            console.error(`Error during audio download: ${error.message}`);
+            reject(error);
+        });
     });
 }
 
@@ -71,7 +81,7 @@ async function playMusic({ api, event, args }) {
         });
 
     } catch (error) {
-        console.error("Error:", error);
+        console.error("Error during video search:", error);
         api.sendMessage("An error occurred while searching for the video.", event.threadID, event.messageID);
         api.setMessageReaction("❌", event.messageID, () => {}, true);
     }
@@ -94,12 +104,22 @@ async function handleReply({ api, event, handleReply }) {
     api.sendMessage(`Fetching "${video.title}" as audio...`, event.threadID, event.messageID);
 
     try {
-        // Fetch video download information from the new API
+        // Fetch video download information from the new API with custom User-Agent
         const apiUrl = `https://vneerapi.onrender.com/ytdown?url=https://youtu.be/${videoId}`;
-        const response = await axios.get(apiUrl);
+        console.log(`Requesting video details from API: ${apiUrl}`);
+        
+        const response = await axios.get(apiUrl, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+        });
+
+        console.log(`API Response:`, response.data);
+
         const { title, thumbnail, downloadUrl } = response.data;
 
         if (!downloadUrl) {
+            console.error(`API did not return a download URL.`);
             return api.sendMessage("Failed to fetch the download link.", event.threadID, event.messageID);
         }
 
@@ -118,7 +138,7 @@ async function handleReply({ api, event, handleReply }) {
 
         api.setMessageReaction("✅", event.messageID, () => {}, true);
     } catch (error) {
-        console.error("Error:", error);
+        console.error("Error during video fetching or download:", error);
         api.sendMessage("An error occurred while trying to play the song.", event.threadID, event.messageID);
         api.setMessageReaction("❌", event.messageID, () => {}, true);
     }
