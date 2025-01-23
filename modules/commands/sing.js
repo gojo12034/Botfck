@@ -20,28 +20,17 @@ const config = {
 // Helper function for downloading audio file
 async function downloadAudio(url, filePath) {
     const writer = fs.createWriteStream(filePath);
+    const response = await axios({
+        url,
+        method: 'GET',
+        responseType: 'stream'
+    });
 
-    try {
-        const response = await axios({
-            url,
-            method: 'GET',
-            responseType: 'stream',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
-                'Accept': '*/*',
-                'Connection': 'keep-alive'
-            }
-        });
-
-        return new Promise((resolve, reject) => {
-            response.data.pipe(writer);
-            writer.on('finish', resolve);
-            writer.on('error', reject);
-        });
-    } catch (error) {
-        console.error("Error during downloading audio:", error.message);
-        throw new Error("Failed to download audio.");
-    }
+    return new Promise((resolve, reject) => {
+        response.data.pipe(writer);
+        writer.on('finish', resolve);
+        writer.on('error', reject);
+    });
 }
 
 // Main function to handle the command
@@ -82,7 +71,7 @@ async function playMusic({ api, event, args }) {
         });
 
     } catch (error) {
-        console.error("Error during YouTube search:", error);
+        console.error("Error:", error);
         api.sendMessage("An error occurred while searching for the video.", event.threadID, event.messageID);
         api.setMessageReaction("❌", event.messageID, () => {}, true);
     }
@@ -102,28 +91,21 @@ async function handleReply({ api, event, handleReply }) {
     const video = searchResults.items[choice - 1];
     const videoId = video.id?.videoId || video.id;
 
-    api.sendMessage(`Downloading "${video.title}" as audio...`, event.threadID, event.messageID);
+    api.sendMessage(`Fetching "${video.title}" as audio...`, event.threadID, event.messageID);
 
     try {
-        // Fetch video download information from the API
-        const apiUrl = `https://vneerapi.onrender.com/ytmp3?url=https://youtu.be/${videoId}`;
-        const response = await axios.get(apiUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
-            }
-        });
+        // Fetch video download information from the new API
+        const apiUrl = `https://vneerapi.onrender.com/ytdown?url=https://youtu.be/${videoId}`;
+        const response = await axios.get(apiUrl);
+        const { title, thumbnail, downloadUrl } = response.data;
 
-        if (!response.data || !response.data.audio || !response.data.audio.url) {
-            console.error("Invalid response from API:", response.data);
-            return api.sendMessage("Failed to fetch audio download link from the API.", event.threadID, event.messageID);
+        if (!downloadUrl) {
+            return api.sendMessage("Failed to fetch the download link.", event.threadID, event.messageID);
         }
 
-        const { title } = response.data;
-        const audioUrl = response.data.audio.url;
-
         // Download the audio file
-        const cachePath = path.join(__dirname, "cache", `music_${videoId}.m4a`);
-        await downloadAudio(audioUrl, cachePath);
+        const cachePath = path.join(__dirname, "cache", `music_${videoId}.mp3`);
+        await downloadAudio(downloadUrl, cachePath);
 
         // Send the audio to the user
         const audioStream = fs.createReadStream(cachePath);
@@ -136,7 +118,7 @@ async function handleReply({ api, event, handleReply }) {
 
         api.setMessageReaction("✅", event.messageID, () => {}, true);
     } catch (error) {
-        console.error("Error during downloading or sending audio:", error.message);
+        console.error("Error:", error);
         api.sendMessage("An error occurred while trying to play the song.", event.threadID, event.messageID);
         api.setMessageReaction("❌", event.messageID, () => {}, true);
     }
