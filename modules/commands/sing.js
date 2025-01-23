@@ -20,11 +20,17 @@ const config = {
 // Helper function for downloading audio file
 async function downloadAudio(url, filePath) {
     const writer = fs.createWriteStream(filePath);
+
     try {
         const response = await axios({
             url,
             method: 'GET',
-            responseType: 'stream'
+            responseType: 'stream',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+                'Accept': '*/*',
+                'Connection': 'keep-alive'
+            }
         });
 
         return new Promise((resolve, reject) => {
@@ -33,7 +39,7 @@ async function downloadAudio(url, filePath) {
             writer.on('error', reject);
         });
     } catch (error) {
-        console.error("Error during downloading audio:", error);
+        console.error("Error during downloading audio:", error.message);
         throw new Error("Failed to download audio.");
     }
 }
@@ -99,7 +105,7 @@ async function handleReply({ api, event, handleReply }) {
     api.sendMessage(`Downloading "${video.title}" as audio...`, event.threadID, event.messageID);
 
     try {
-        // Fetch video download information from the new API
+        // Fetch video download information from the API
         const apiUrl = `https://vneerapi.onrender.com/ytmp3?url=https://youtu.be/${videoId}`;
         const response = await axios.get(apiUrl, {
             headers: {
@@ -130,7 +136,7 @@ async function handleReply({ api, event, handleReply }) {
 
         api.setMessageReaction("✅", event.messageID, () => {}, true);
     } catch (error) {
-        console.error("Error during downloading or sending audio:", error);
+        console.error("Error during downloading or sending audio:", error.message);
         api.sendMessage("An error occurred while trying to play the song.", event.threadID, event.messageID);
         api.setMessageReaction("❌", event.messageID, () => {}, true);
     }
