@@ -7,6 +7,7 @@ const fetchBibleVerse = async () => {
     const response = await axios.get('https://bible-api.com/data/web/random/MAT,MRK,LUK,JHN');
     const { book, chapter, verse, text } = response.data.random_verse;
 
+    // Format the date for Asia/Manila timezone
     const currentDate = new Intl.DateTimeFormat('en-US', {
       timeZone: 'Asia/Manila',
       dateStyle: 'full',
@@ -15,6 +16,8 @@ const fetchBibleVerse = async () => {
     return `📖 Daily Bible Verse:\n\n"${text}"\n\n📍 ${book} ${chapter}:${verse}\n📅 Date: ${currentDate}`;
   } catch (error) {
     console.error('Error fetching Bible verse:', error.message);
+
+    // Fallback Bible verse
     return `📖 Daily Bible Verse:\n\n"For I know the plans I have for you, declares the Lord, plans for welfare and not for evil, to give you a future and a hope."\n\n📍 Jeremiah 29:11\n📅 Date: ${new Intl.DateTimeFormat('en-US', {
       timeZone: 'Asia/Manila',
       dateStyle: 'full',
@@ -28,9 +31,10 @@ const sendMessageWithDelay = async (api, message, threads, delay = 2000) => {
     try {
       await api.sendMessage(message, thread.threadID);
       console.log(`Message sent to thread ${thread.threadID}`);
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay)); // Wait before sending to the next thread
     } catch (err) {
-      console.error(`Error sending message to thread ${thread.threadID}: ${err.message}`);
+      console.warn(`WARN: Unable to send message to thread ${thread.threadID}. Error: ${err.message}`);
+      // Log the error and skip to the next thread without stopping execution
     }
   }
 };
@@ -39,8 +43,8 @@ module.exports = ({ api }) => {
   const config = {
     autoRestart: {
       status: true,
-      time: 43, // Restart interval in minutes (e.g., 40 minutes)
-      note: 'Restart is scheduled to run at precise intervals from midnight.',
+      time: 43, // Interval in minutes
+      note: 'To avoid problems, enable periodic bot restarts',
     },
     greetings: [
       {
@@ -87,9 +91,10 @@ module.exports = ({ api }) => {
 
           console.log(`Preparing to send message: "${message}"`);
 
+          // Attempt to get all threads from the inbox
           let threads = [];
           try {
-            threads = (await api.getThreadList(10, null, ['INBOX'])).filter(
+            threads = (await api.getThreadList(50, null, ['INBOX'])).filter(
               (thread) => thread.isGroup === true
             );
           } catch (err) {
@@ -114,21 +119,13 @@ module.exports = ({ api }) => {
     );
   });
 
-  // Schedule precise restart at configured intervals
   if (config.autoRestart.status) {
-    const restartCron = `*/${config.autoRestart.time} * * * *`;
-    cron.schedule(restartCron, () => {
-      const now = new Date();
-      const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes();
-
-      // Restart only if the current time is a multiple of the configured interval
-      if (minutesSinceMidnight % config.autoRestart.time === 0) {
-        try {
-          console.log(`Restarting bot as scheduled at ${now.toLocaleTimeString('en-US', { timeZone: 'Asia/Manila' })}`);
-          process.exit(1); // Restart bot
-        } catch (err) {
-          console.error('Error during restart:', err.message);
-        }
+    cron.schedule(`*/${config.autoRestart.time} * * * *`, () => {
+      try {
+        console.log('Auto-restarting the bot...');
+        process.exit(1); // Exit with success code to allow restart
+      } catch (err) {
+        console.error('Error during auto-restart:', err.message);
       }
     });
   }
