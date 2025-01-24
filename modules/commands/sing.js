@@ -123,7 +123,7 @@ async function handleReply({ api, event, handleReply }) {
         // Step 1: Request MP3 download
         const downloadResponse = await axios({
             method: 'GET',
-            url: `https://p.oceansaver.in/ajax/download.php?copyright=0&format=mp3&url=https://www.youtube.com/watch?v=${videoId}`,
+            url: `https://p.oceansaver.in/ajax/download.php?copyright=0&format=mp3&url=https://www.youtube.com/watch?v=${videoId}&api=30de256ad09118bd6b60a13de631ae2cea6e5f9d`,
             headers: {
                 'User-Agent': getRandomUserAgent(),
             },
