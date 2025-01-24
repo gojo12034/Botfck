@@ -1,7 +1,7 @@
 const { Client } = require("youtubei");
-const axios = require('axios');
-const fs = require('fs-extra');
-const path = require('path');
+const axios = require("axios");
+const fs = require("fs-extra");
+const path = require("path");
 
 const youtube = new Client();
 
@@ -33,12 +33,11 @@ function getRandomUserAgent() {
 
 // Helper function for downloading audio file
 async function downloadAudio(url, filePath) {
-    console.log(`Starting download from URL: ${url}`);
     const writer = fs.createWriteStream(filePath);
     const response = await axios({
         url,
-        method: 'GET',
-        responseType: 'stream',
+        method: "GET",
+        responseType: "stream",
         headers: {
             "User-Agent": getRandomUserAgent(),
         },
@@ -46,14 +45,8 @@ async function downloadAudio(url, filePath) {
 
     return new Promise((resolve, reject) => {
         response.data.pipe(writer);
-        writer.on('finish', () => {
-            console.log(`Audio downloaded to: ${filePath}`);
-            resolve();
-        });
-        writer.on('error', (error) => {
-            console.error(`Error during audio download: ${error.message}`);
-            reject(error);
-        });
+        writer.on("finish", resolve);
+        writer.on("error", reject);
     });
 }
 
@@ -63,7 +56,11 @@ async function playMusic({ api, event, args }) {
 
     const searchQuery = args.join(" ");
     if (!searchQuery) {
-        return api.sendMessage("Please provide a search keyword or a YouTube link.", event.threadID, event.messageID);
+        return api.sendMessage(
+            "Please provide a search keyword or a YouTube link.",
+            event.threadID,
+            event.messageID
+        );
     }
 
     try {
@@ -71,7 +68,11 @@ async function playMusic({ api, event, args }) {
         const searchResults = await youtube.search(searchQuery, { type: "video" });
 
         if (!searchResults.items.length) {
-            return api.sendMessage("No results found. Please try again with a different keyword.", event.threadID, event.messageID);
+            return api.sendMessage(
+                "No results found. Please try again with a different keyword.",
+                event.threadID,
+                event.messageID
+            );
         }
 
         let message = "Choose a video:\n";
@@ -80,11 +81,7 @@ async function playMusic({ api, event, args }) {
         });
 
         api.sendMessage(message, event.threadID, (error, info) => {
-            if (error) {
-                console.error('Error sending message:', error);
-                return;
-            }
-
+            if (error) return;
             global.client.handleReply.push({
                 type: "chooseVideo",
                 name: config.name,
@@ -93,10 +90,12 @@ async function playMusic({ api, event, args }) {
                 searchResults,
             });
         });
-
     } catch (error) {
-        console.error("Error during video search:", error);
-        api.sendMessage("An error occurred while searching for the video.", event.threadID, event.messageID);
+        api.sendMessage(
+            "An error occurred while searching for the video.",
+            event.threadID,
+            event.messageID
+        );
         api.setMessageReaction("❌", event.messageID, () => {}, true);
     }
 }
@@ -106,73 +105,63 @@ async function handleReply({ api, event, handleReply }) {
     const choice = parseInt(event.body);
 
     if (isNaN(choice) || choice < 1 || choice > searchResults.items.length) {
-        return api.sendMessage("Invalid choice. Please reply with a valid number.", event.threadID, event.messageID);
+        return api.sendMessage(
+            "Invalid choice. Please reply with a valid number.",
+            event.threadID,
+            event.messageID
+        );
     }
 
-    // Unsend the choices message
     api.unsendMessage(event.messageReply.messageID);
 
     const video = searchResults.items[choice - 1];
     const videoId = video.id?.videoId || video.id;
 
-    api.sendMessage(`Fetching "${video.title}" as audio...`, event.threadID, event.messageID);
-
     try {
-        console.log(`Video ID: ${videoId}`);
-
-        // Step 1: Request MP3 download
-        const downloadResponse = await axios({
-            method: 'GET',
-            url: `https://p.oceansaver.in/ajax/download.php?copyright=0&format=mp3&url=https://www.youtube.com/watch?v=${videoId}&api=30de256ad09118bd6b60a13de631ae2cea6e5f9d`,
+        const response = await axios({
+            method: "GET",
+            url: `https://api.fabdl.com/youtube/get?url=https://www.youtube.com/watch?v=${videoId}`,
             headers: {
-                'User-Agent': getRandomUserAgent(),
+                "User-Agent": getRandomUserAgent(),
             },
         });
 
-        const downloadData = downloadResponse.data;
-        console.log(`Download Response for Video ID ${videoId}:`, downloadData);
-
-        if (!downloadData.success || !downloadData.id) {
-            return api.sendMessage("Failed to initiate the download process.", event.threadID, event.messageID);
+        const data = response.data.result;
+        if (!data || !data.audios || data.audios.length === 0) {
+            return api.sendMessage(
+                "No audio download links available.",
+                event.threadID,
+                event.messageID
+            );
         }
 
-        const { id, info } = downloadData;
+        const audio = data.audios[0];
+        const cachePath = path.join(
+            __dirname,
+            "cache",
+            `music_${videoId}.mp3`
+        );
 
-        // Step 2: Check progress and get final download URL
-        const progressResponse = await axios({
-            method: 'GET',
-            url: `https://p.oceansaver.in/ajax/progress.php?id=${id}`,
-            headers: {
-                'User-Agent': getRandomUserAgent(),
+        await downloadAudio(audio.url, cachePath);
+
+        api.sendMessage(
+            {
+                body: `🎵 Now playing: ${data.title}`,
+                attachment: fs.createReadStream(cachePath),
             },
-        });
-
-        const progressData = progressResponse.data;
-        console.log(`Progress Response for Download ID ${id}:`, progressData);
-
-        if (!progressData.success || !progressData.download_url) {
-            return api.sendMessage("Failed to fetch the download URL.", event.threadID, event.messageID);
-        }
-
-        const { download_url: downloadUrl } = progressData;
-
-        // Download the audio file
-        const cachePath = path.join(__dirname, "cache", `music_${videoId}.mp3`);
-        await downloadAudio(downloadUrl, cachePath);
-
-        // Send the audio to the user
-        const audioStream = fs.createReadStream(cachePath);
-        api.sendMessage({
-            body: `🎵 Now playing: ${info.title}`,
-            attachment: audioStream,
-        }, event.threadID, () => {
-            fs.unlinkSync(cachePath); // Delete the file after sending
-        }, event.messageID);
+            event.threadID,
+            () => fs.unlinkSync(cachePath),
+            event.messageID
+        );
 
         api.setMessageReaction("✅", event.messageID, () => {}, true);
     } catch (error) {
-        console.error("Error during video fetching or download:", error);
-        api.sendMessage("An error occurred while trying to play the song.", event.threadID, event.messageID);
+        console.error("Error:", error);
+        api.sendMessage(
+            "An error occurred while trying to play the song.",
+            event.threadID,
+            event.messageID
+        );
         api.setMessageReaction("❌", event.messageID, () => {}, true);
     }
 }
