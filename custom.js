@@ -39,7 +39,7 @@ module.exports = ({ api }) => {
   const config = {
     autoRestart: {
       status: true,
-      time: 40, // Restart interval in minutes (e.g., 40 minutes)
+      time: 43, // Restart interval in minutes (e.g., 40 minutes)
       note: 'Restart is scheduled to run at precise intervals from midnight.',
     },
     greetings: [
