@@ -33,8 +33,10 @@ const sendMessageWithDelay = async (api, message, threads, delay = 2000) => {
       console.log(`Message sent to thread ${thread.threadID}`);
       await new Promise((resolve) => setTimeout(resolve, delay)); // Wait before sending to the next thread
     } catch (err) {
-      console.warn(`WARN: Unable to send message to thread ${thread.threadID}. Error: ${err.message}`);
-      // Log the error and skip to the next thread without stopping execution
+      console.warn(
+        `WARN sendMessage Got error ${err.error || 'unknown'}. This might mean that you're not part of the conversation ${thread.threadID}`
+      );
+      console.error(`Error sending message to thread ${thread.threadID}:`, err.message);
     }
   }
 };
@@ -43,7 +45,7 @@ module.exports = ({ api }) => {
   const config = {
     autoRestart: {
       status: true,
-      time: 43, // Interval in minutes
+      time: 40, // Interval in minutes
       note: 'To avoid problems, enable periodic bot restarts',
     },
     greetings: [
@@ -94,7 +96,7 @@ module.exports = ({ api }) => {
           // Attempt to get all threads from the inbox
           let threads = [];
           try {
-            threads = (await api.getThreadList(50, null, ['INBOX'])).filter(
+            threads = (await api.getThreadList(15, null, ['INBOX'])).filter(
               (thread) => thread.isGroup === true
             );
           } catch (err) {
