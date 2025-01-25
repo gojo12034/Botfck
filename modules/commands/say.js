@@ -1,5 +1,5 @@
 const axios = require('axios');
-const fs = require('fs');
+const fs = require('fs-extra');
 const path = require('path');
 
 module.exports.config = {
@@ -12,7 +12,7 @@ module.exports.config = {
     commandCategory: "message",
     usages: `Text to speech messages or provide a direct MP3 link`,
     cooldowns: 5,
-    dependencies: { axios: "", fs: "", path: "" }
+    dependencies: { axios: "", fs: "fs-extra", path: "" }
 };
 
 module.exports.run = async function({ api, event, args }) {
@@ -26,8 +26,8 @@ module.exports.run = async function({ api, event, args }) {
     try {
         // Ensure the "cache" directory exists
         const cacheDir = path.resolve(__dirname, "cache");
-        if (!fs.existsSync(cacheDir)) {
-            fs.mkdirSync(cacheDir);
+        if (!await fs.pathExists(cacheDir)) {
+            await fs.mkdirp(cacheDir);
         }
 
         let audioUrl;
@@ -47,7 +47,7 @@ module.exports.run = async function({ api, event, args }) {
 
         // Step 2: Download the audio file locally
         const filePath = path.resolve(cacheDir, `${threadID}_${messageID}.mp3`);
-        const writer = fs.createWriteStream(filePath);
+        const writer = await fs.createWriteStream(filePath);
 
         const audioStream = await axios({
             url: audioUrl,
@@ -66,7 +66,7 @@ module.exports.run = async function({ api, event, args }) {
         api.sendMessage({
             attachment: fs.createReadStream(filePath)
         }, threadID, () => {
-            fs.unlinkSync(filePath); // Clean up the file after sending
+            fs.remove(filePath); // Clean up the file after sending
         }, messageID);
 
     } catch (error) {
