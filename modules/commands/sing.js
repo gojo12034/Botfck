@@ -34,9 +34,10 @@ function getRandomUserAgent() {
 // Helper function for downloading audio file
 async function downloadAudio(url, filePath) {
     const writer = fs.createWriteStream(filePath);
+
     const response = await axios({
-        url,
         method: "GET",
+        url: url,
         responseType: "stream",
         headers: {
             "User-Agent": getRandomUserAgent(),
@@ -45,8 +46,14 @@ async function downloadAudio(url, filePath) {
 
     return new Promise((resolve, reject) => {
         response.data.pipe(writer);
-        writer.on("finish", resolve);
-        writer.on("error", reject);
+        writer.on("finish", () => {
+            console.log(`Downloaded audio to: ${filePath}`);
+            resolve();
+        });
+        writer.on("error", (error) => {
+            console.error("Error during download:", error);
+            reject(error);
+        });
     });
 }
 
@@ -135,22 +142,22 @@ async function handleReply({ api, event, handleReply }) {
             );
         }
 
-        const cachePath = path.join(__dirname, "cache", `music_${videoId}.mp3`);
-        await downloadAudio(data.audio.url, cachePath);
+        const filePath = path.join(__dirname, "cache", `${data.title}.mp3`);
+        await downloadAudio(data.audio.url, filePath);
 
         api.sendMessage(
             {
                 body: `🎵 Now playing: ${data.title}`,
-                attachment: fs.createReadStream(cachePath),
+                attachment: fs.createReadStream(filePath),
             },
             event.threadID,
-            () => fs.unlinkSync(cachePath),
+            () => fs.unlinkSync(filePath),
             event.messageID
         );
 
         api.setMessageReaction("✅", event.messageID, () => {}, true);
     } catch (error) {
-        console.error("Error:", error);
+        console.error("Error downloading audio:", error);
         api.sendMessage(
             "An error occurred while trying to play the song.",
             event.threadID,
