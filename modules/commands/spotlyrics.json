@@ -12,7 +12,7 @@ module.exports.config = {
     commandCategory: "Media",
     usages: "[song name]",
     cooldowns: 10,
-    dependencies: { axios: "", fs: "", path: "" }
+    dependencies: { axios: "", fs: "fs-extra", path: "" }
 };
 
 module.exports.run = async function ({ api, event, args }) {
@@ -52,7 +52,7 @@ module.exports.run = async function ({ api, event, args }) {
         }, threadID, async () => {
             // Cache the MP3 file
             const cacheDir = path.join(__dirname, "cache");
-            await fs.ensureDir(cacheDir); // Use fs-extra for directory creation
+            await fs.ensureDir(cacheDir); // Ensure the "cache" directory exists
             const cachePath = path.join(cacheDir, `music_${songTitle.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`);
 
             try {
@@ -69,7 +69,10 @@ module.exports.run = async function ({ api, event, args }) {
                 await new Promise((resolve, reject) => {
                     downloadStream.data.pipe(writer);
                     writer.on('finish', resolve);
-                    writer.on('error', reject);
+                    writer.on('error', (err) => {
+                        console.error("Error writing the file:", err.message);
+                        reject(err);
+                    });
                 });
 
                 // Send the MP3 file
@@ -79,11 +82,15 @@ module.exports.run = async function ({ api, event, args }) {
                     attachment: audioStream
                 }, threadID, () => {
                     // Delete the cached file after sending
-                    fs.unlinkSync(cachePath);
+                    try {
+                        fs.unlinkSync(cachePath);
+                    } catch (err) {
+                        console.error("Error cleaning up the file:", err.message);
+                    }
                 }, messageID);
 
             } catch (downloadError) {
-                console.error("Error downloading MP3 file:", downloadError);
+                console.error("Error downloading MP3 file:", downloadError.message);
                 api.sendMessage("Failed to download the MP3 file. Please try again later.", threadID, messageID);
             }
         });
@@ -92,7 +99,8 @@ module.exports.run = async function ({ api, event, args }) {
 
     } catch (error) {
         console.error("Error fetching lyrics or song:", error.message);
-        api.sendMessage("Failed to retrieve the song or lyrics. Please try again later.", threadID, messageID);
+        api.sendMessage("Failed to retrieve the song or lyrics. Please try again later.", 
+threadID, messageID);
         api.setMessageReaction("❌", messageID, () => {}, true);
     }
 };
