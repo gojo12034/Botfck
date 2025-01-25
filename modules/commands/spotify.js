@@ -72,6 +72,11 @@ module.exports.run = async function ({ api, event, args }) {
             api.sendMessage("Failed to save the song. Please try again later.", threadID, messageID);
         });
 
+        downloadResponse.data.on('error', (err) => {
+            console.error("Error downloading the file:", err.message);
+            api.sendMessage("Failed to download the song. Please try again later.", threadID, messageID);
+        });
+
     } catch (error) {
         console.error("Error fetching the song:", error.message);
         api.sendMessage("Failed to retrieve the song. Please try again later.", threadID, messageID);
