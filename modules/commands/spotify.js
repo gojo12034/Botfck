@@ -1,11 +1,13 @@
 const axios = require('axios');
+const fs = require('fs-extra');
+const path = require('path');
 
 module.exports.config = {
     name: "spotify",
     version: "1.0.0",
     hasPermssion: 0,
     credits: "Biru",
-    description: "Play spotify music via a search keyword",
+    description: "Play Spotify music via a search keyword",
     usePrefix: true,
     commandCategory: "Media",
     usages: "[spotify name]",
@@ -21,10 +23,6 @@ module.exports.run = async function ({ api, event, args }) {
     if (!searchQuery) {
         return api.sendMessage("Please provide the name of a song to search.", threadID, messageID);
     }
-
-    // React and show typing indicator
-    api.setMessageReaction("🕢", messageID, () => {}, true);
-    api.sendTypingIndicator(threadID, true);
 
     try {
         // Fetch song details from the external API
@@ -47,23 +45,35 @@ module.exports.run = async function ({ api, event, args }) {
         // Format the response message
         const messageBody = `🎶 Now Playing: "${songTitle}"\n👤 Artist: ${songArtist}\n💽 Album: ${albumName}`;
 
-        // Fetch the song directly as a stream and send it as an attachment
+        // Download the song
+        const filePath = path.join(__dirname, "cache", `${songTitle}.mp3`);
+
         const downloadResponse = await axios({
             url: downloadUrl,
             method: 'GET',
             responseType: 'stream'
         });
 
-        api.sendMessage({
-            body: messageBody,
-            attachment: downloadResponse.data
-        }, threadID, () => {
-            api.setMessageReaction("✅", messageID, () => {}, true);
-        }, messageID);
+        // Save the file locally
+        const writer = fs.createWriteStream(filePath);
+        downloadResponse.data.pipe(writer);
+
+        writer.on('finish', () => {
+            api.sendMessage({
+                body: messageBody,
+                attachment: fs.createReadStream(filePath)
+            }, threadID, () => {
+                fs.unlinkSync(filePath); // Clean up the file after sending
+            }, messageID);
+        });
+
+        writer.on('error', (error) => {
+            console.error("Error saving the file:", error.message);
+            api.sendMessage("Failed to save the song. Please try again later.", threadID, messageID);
+        });
 
     } catch (error) {
         console.error("Error fetching the song:", error.message);
         api.sendMessage("Failed to retrieve the song. Please try again later.", threadID, messageID);
-        api.setMessageReaction("❌", messageID, () => {}, true);
     }
 };
