@@ -3,16 +3,16 @@ const fs = require('fs');
 const path = require('path');
 
 module.exports.config = {
-	name: "say",
-	version: "1.0.0",
-	hasPermssion: 0,
-	credits: "Yan Maglinte",
-	description: "text to voice speech messages",
-	usePrefix: true, // SWITCH TO "false" IF YOU WANT TO DISABLE PREFIX
-	commandCategory: "message",
-	usages: `Text to speech messages`,
-	cooldowns: 5,
-	dependencies: { axios: "", fs: "", path: "" }
+    name: "say",
+    version: "1.0.0",
+    hasPermssion: 0,
+    credits: "Yan Maglinte",
+    description: "text to voice speech messages or download MP3s",
+    usePrefix: true, // SWITCH TO "false" IF YOU WANT TO DISABLE PREFIX
+    commandCategory: "message",
+    usages: `Text to speech messages or provide a direct MP3 link`,
+    cooldowns: 5,
+    dependencies: { axios: "", fs: "", path: "" }
 };
 
 module.exports.run = async function({ api, event, args }) {
@@ -20,7 +20,7 @@ module.exports.run = async function({ api, event, args }) {
     const content = args.join(" ") || (event.type === "message_reply" ? event.messageReply.body : "");
 
     if (!content) {
-        return api.sendMessage("Please provide text to convert to speech.", threadID, messageID);
+        return api.sendMessage("Please provide text to convert to speech or an MP3 URL.", threadID, messageID);
     }
 
     try {
@@ -30,13 +30,19 @@ module.exports.run = async function({ api, event, args }) {
             fs.mkdirSync(cacheDir);
         }
 
-        // Step 1: Get the audio URL
-        const apiUrl = `https://vneerapi.onrender.com/t2v?text=${encodeURIComponent(content)}`;
-        const response = await axios.get(apiUrl);
+        let audioUrl;
+        if (content.startsWith("http") && content.endsWith(".mp3")) {
+            // Direct MP3 download link
+            audioUrl = content;
+        } else {
+            // Convert text to speech
+            const apiUrl = `https://vneerapi.onrender.com/t2v?text=${encodeURIComponent(content)}`;
+            const response = await axios.get(apiUrl);
+            audioUrl = response.data.audioUrl;
 
-        const audioUrl = response.data.audioUrl;
-        if (!audioUrl) {
-            return api.sendMessage("Failed to fetch the audio file. Please try again later.", threadID, messageID);
+            if (!audioUrl) {
+                return api.sendMessage("Failed to fetch the audio file. Please try again later.", threadID, messageID);
+            }
         }
 
         // Step 2: Download the audio file locally
@@ -65,6 +71,6 @@ module.exports.run = async function({ api, event, args }) {
 
     } catch (error) {
         console.error("Error fetching or sending the audio:", error.message);
-        api.sendMessage("Failed to convert text to speech. Please try again later.", threadID, messageID);
+        api.sendMessage("Failed to process your request. Please try again later.", threadID, messageID);
     }
 };
