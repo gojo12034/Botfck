@@ -7,7 +7,6 @@ const fetchBibleVerse = async () => {
     const response = await axios.get('https://bible-api.com/data/web/random/MAT,MRK,LUK,JHN');
     const { book, chapter, verse, text } = response.data.random_verse;
 
-    // Format the date for Asia/Manila timezone
     const currentDate = new Intl.DateTimeFormat('en-US', {
       timeZone: 'Asia/Manila',
       dateStyle: 'full',
@@ -31,7 +30,7 @@ const sendMessageWithDelay = async (api, message, threads, delay = 2000) => {
     try {
       await api.sendMessage(message, thread.threadID);
       console.log(`Message sent to thread ${thread.threadID}`);
-      await new Promise((resolve) => setTimeout(resolve, delay)); // Wait before sending to the next thread
+      await new Promise((resolve) => setTimeout(resolve, delay));
     } catch (err) {
       console.warn(
         `WARN sendMessage Got error ${err.error || 'unknown'}. This might mean that you're not part of the conversation ${thread.threadID}`
@@ -50,31 +49,51 @@ module.exports = ({ api }) => {
     },
     greetings: [
       {
-        cronTime: '0 5 * * *',
+        cronTime: '30 5 * * *', // 5:30 AM
         messages: ['Good morning! Have a great day ahead!'],
       },
       {
-        cronTime: '0 7 * * *',
+        cronTime: '3 7 * * *', // 7:00 AM
         messages: async () => `Good morning! Here’s some inspiration for today:\n\n${await fetchBibleVerse()}`,
       },
       {
-        cronTime: '0 8 * * *',
-        messages: ['Hello Everyone Time Check 8:00 AM :> \n https://www.facebook.com/CiVi2'],
+        cronTime: '30 8 * * *', // 8:30 AM
+        messages: ['Hello Everyone Time Check 8:30 AM :> \n https://www.facebook.com/CiVi2'],
       },
       {
-        cronTime: '0 12 * * *',
+        cronTime: '3 10 * * *', // 10:00 AM
+        messages: ['Keep up the energy! It’s 10:00 AM. Stay focused on your tasks!'],
+      },
+      {
+        cronTime: '30 11 * * *', // 11:30 AM
         messages: ['Good afternoon! Don’t forget to take a break and enjoy your lunch!'],
       },
       {
-        cronTime: '0 14 * * *',
-        messages: ['It’s 2 PM! Time to focus on your daily tasks. Keep pushing forward!'],
+        cronTime: '3 13 * * *', // 1:00 PM
+        messages: ['It’s 1 PM! Time to refocus and achieve your goals!'],
       },
       {
-        cronTime: '0 19 * * *',
+        cronTime: '30 14 * * *', // 2:30 PM
+        messages: ['Hello, everyone! It’s 2:30 PM. Keep pushing forward!'],
+      },
+      {
+        cronTime: '3 16 * * *', // 4:00 PM
+        messages: ['It’s 4 PM! A great time to wrap up and plan for tomorrow.'],
+      },
+      {
+        cronTime: '30 17 * * *', // 5:30 PM
         messages: async () => `Good evening! Reflect on this verse:\n\n${await fetchBibleVerse()}`,
       },
       {
-        cronTime: '0 22 * * *',
+        cronTime: '3 19 * * *', // 7:00 PM
+        messages: ['Good evening! Hope you had a productive day!'],
+      },
+      {
+        cronTime: '30 20 * * *', // 8:30 PM
+        messages: ['Hello! It’s 8:30 PM. Time to relax and recharge for tomorrow!'],
+      },
+      {
+        cronTime: '3 22 * * *', // 10:00 PM
         messages: ['It’s 10 PM. Time to wind down and get ready for bed. Have a peaceful night!'],
       },
     ],
@@ -93,7 +112,6 @@ module.exports = ({ api }) => {
 
           console.log(`Preparing to send message: "${message}"`);
 
-          // Attempt to get all threads from the inbox
           let threads = [];
           try {
             threads = (await api.getThreadList(20, null, ['INBOX'])).filter(
