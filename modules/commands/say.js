@@ -3,69 +3,66 @@ const fs = require('fs-extra');
 const path = require('path');
 
 module.exports.config = {
-    name: "say",
-    version: "1.0.0",
-    hasPermssion: 0,
-    credits: "Biru",
-    description: "Text to voice speech messages",
-    usePrefix: true,
-    commandCategory: "message",
-    usages: "Text to speech messages",
-    cooldowns: 5,
-    dependencies: { axios: "", "fs-extra": "" }
+	name: "say",
+	version: "1.0.0",
+	hasPermssion: 0,
+	credits: "Yan Maglinte",
+	description: "text to voice speech messages",
+	usePrefix: true, // SWITCH TO "false" IF YOU WANT TO DISABLE PREFIX
+	commandCategory: "message",
+	usages: `Text to speech messages`,
+	cooldowns: 5,
+	dependencies: { axios: "", "fs-extra": "", path: "" }
 };
 
 module.exports.run = async function({ api, event, args }) {
-    const { threadID, messageID } = event;
-    const content = args.join(" ") || (event.type === "message_reply" ? event.messageReply.body : "");
+	const { threadID, messageID } = event;
+	const content = args.join(" ") || (event.type === "message_reply" ? event.messageReply.body : "");
 
-    if (!content) {
-        return api.sendMessage("Please provide text to convert to speech.", threadID, messageID);
-    }
+	if (!content) {
+		return api.sendMessage("Please provide text to convert to speech.", threadID, messageID);
+	}
 
-    try {
-        // Fetch the audio URL from the API
-        const apiUrl = `https://vneerapi.onrender.com/t2v?text=${encodeURIComponent(content)}`;
-        const response = await axios.get(apiUrl);
+	try {
+		// Ensure the "cache" directory exists using fs-extra
+		const cacheDir = path.resolve(__dirname, "cache");
+		await fs.ensureDir(cacheDir);
 
-        // Extract the audio URL from the API response
-        const audioUrl = response.data.audioUrl;
-        if (!audioUrl) {
-            return api.sendMessage("Failed to fetch the audio file. Please try again later.", threadID, messageID);
-        }
+		// Step 1: Get the audio URL
+		const apiUrl = `https://vneerapi.onrender.com/t2v?text=${encodeURIComponent(content)}`;
+		const response = await axios.get(apiUrl);
 
-        // Define the cache directory and file path
-        const cacheDir = path.join(__dirname, "cache");
-        const filePath = path.join(cacheDir, `${Date.now()}.mp3`);
+		const audioUrl = response.data.audioUrl;
+		if (!audioUrl) {
+			return api.sendMessage("Failed to fetch the audio file. Please try again later.", threadID, messageID);
+		}
 
-        // Ensure the cache directory exists
-        await fs.ensureDir(cacheDir);
+		// Step 2: Download the audio file to the cache directory
+		const filePath = path.resolve(cacheDir, `${threadID}_${messageID}.mp3`);
 
-        // Download the audio file to the cache
-        const writer = fs.createWriteStream(filePath);
-        const audioResponse = await axios({
-            url: audioUrl,
-            method: "GET",
-            responseType: "stream"
-        });
-        audioResponse.data.pipe(writer);
+		// Use fs-extra to download the file
+		const audioStream = await axios({
+			url: audioUrl,
+			method: "GET",
+			responseType: "stream"
+		});
 
-        // Wait for the download to complete
-        await new Promise((resolve, reject) => {
-            writer.on("finish", resolve);
-            writer.on("error", reject);
-        });
+		await new Promise((resolve, reject) => {
+			const writer = fs.createWriteStream(filePath);
+			audioStream.data.pipe(writer);
+			writer.on("finish", resolve);
+			writer.on("error", reject);
+		});
 
-        // Send the audio file as an attachment
-        api.sendMessage({
-            attachment: fs.createReadStream(filePath)
-        }, threadID, messageID, () => {
-            // Delete the file after sending
-            fs.remove(filePath).catch(err => console.error("Failed to delete cached file:", err));
-        });
+		// Step 3: Send the audio file as an attachment
+		api.sendMessage({
+			attachment: fs.createReadStream(filePath)
+		}, threadID, () => {
+			fs.unlink(filePath).catch(err => console.error("Error deleting file:", err)); // Clean up the file after sending
+		}, messageID);
 
-    } catch (error) {
-        console.error("Error fetching the audio:", error.message);
-        api.sendMessage("Failed to convert text to speech. Please try again later.", threadID, messageID);
-    }
+	} catch (error) {
+		console.error("Error fetching or sending the audio:", error.message);
+		api.sendMessage("Failed to convert text to speech. Please try again later.", threadID, messageID);
+	}
 };
