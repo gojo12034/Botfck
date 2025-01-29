@@ -15,7 +15,7 @@ module.exports.config = {
 	dependencies: { axios: "", "fs-extra": "", path: "" }
 };
 
-module.exports.run = async function({ api, event, args }) {
+module.exports.run = async function ({ api, event, args }) {
 	const { threadID, messageID } = event;
 	const content = args.join(" ") || (event.type === "message_reply" ? event.messageReply.body : "");
 
@@ -28,11 +28,21 @@ module.exports.run = async function({ api, event, args }) {
 		const cacheDir = path.resolve(__dirname, "cache");
 		await fs.ensureDir(cacheDir);
 
-		// Step 1: Get the audio URL
-		const apiUrl = `https://vneerapi.onrender.com/t2v?text=${encodeURIComponent(content)}`;
-		const response = await axios.get(apiUrl);
+		// Function to fetch the audio URL with a retry mechanism
+		const fetchAudioUrl = async () => {
+			const apiUrl = `https://vneerapi.onrender.com/t2v?text=${encodeURIComponent(content)}`;
+			const response = await axios.get(apiUrl);
+			return response.data.audioUrl || null;
+		};
 
-		const audioUrl = response.data.audioUrl;
+		// Step 1: Get the audio URL (with fallback)
+		let audioUrl = await fetchAudioUrl();
+		if (!audioUrl) {
+			console.error("First attempt to fetch audio URL failed. Retrying...");
+			audioUrl = await fetchAudioUrl();
+		}
+
+		// If still no audio URL after retrying
 		if (!audioUrl) {
 			return api.sendMessage("Failed to fetch the audio file. Please try again later.", threadID, messageID);
 		}
@@ -62,7 +72,7 @@ module.exports.run = async function({ api, event, args }) {
 		}, messageID);
 
 	} catch (error) {
-		console.error("Error fetching or sending the audio:", error.message);
+		console.error("Error fetching or sending the audio:", error.message, error.response?.data || "No additional response data");
 		api.sendMessage("Failed to convert text to speech. Please try again later.", threadID, messageID);
 	}
 };
